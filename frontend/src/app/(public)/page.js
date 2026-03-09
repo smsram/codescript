@@ -1,4 +1,5 @@
 import React from 'react';
+import Link from 'next/link'; // 🚀 Added Next.js Link
 import './page.css'; 
 
 export default function Home() {
@@ -22,8 +23,9 @@ export default function Home() {
 
           {/* CTAs */}
           <div className="nav-actions">
-            <button className="btn btn-ghost btn-login">Log In</button>
-            <button className="btn btn-primary">Sign Up</button>
+            {/* 🚀 Changed to Links */}
+            <Link href="/login" className="btn btn-ghost btn-login">Log In</Link>
+            <Link href="/signup" className="btn btn-primary">Sign Up</Link>
           </div>
         </div>
       </nav>
@@ -51,14 +53,15 @@ export default function Home() {
           </p>
 
           <div className="hero-buttons anim-fade-up delay-3">
-            <button className="btn btn-primary btn-large">
+            {/* 🚀 Changed to Links pointing to Dashboard and Login */}
+            <Link href="/dashboard" className="btn btn-primary btn-large">
               <span className="material-symbols-outlined">terminal</span>
               Start Coding Now
-            </button>
-            <button className="btn btn-outline btn-large">
+            </Link>
+            <Link href="/login" className="btn btn-outline btn-large">
               <span className="material-symbols-outlined">school</span>
               Professor Access
-            </button>
+            </Link>
           </div>
 
           {/* IDE Mockup */}
@@ -197,7 +200,8 @@ export default function Home() {
                 <h2>Ready for your next challenge?</h2>
                 <p>Join thousands of GGU students mastering their craft. Start solving real-world problems today.</p>
               </div>
-              <button className="btn btn-large btn-white">Create Student Account</button>
+              {/* 🚀 Changed to Link pointing to Signup */}
+              <Link href="/signup" className="btn btn-large btn-white">Create Student Account</Link>
             </div>
 
             {/* Simple Footer Links */}
