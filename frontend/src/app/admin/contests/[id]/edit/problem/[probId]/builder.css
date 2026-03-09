@@ -1,0 +1,158 @@
+.problem-builder-wrapper {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  gap: 1.5rem;
+  max-width: 1600px;
+  margin: 0 auto;
+}
+
+/* --- TITLE INPUT --- */
+.problem-title-input {
+  width: 100%;
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid var(--border-light, #334155);
+  padding: 0.5rem 0;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #f8fafc;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.problem-title-input:focus {
+  border-color: var(--primary, #06b6d4);
+}
+
+.problem-title-input::placeholder {
+  color: #475569;
+}
+
+/* --- TWO PANE LAYOUT --- */
+.pb-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  /* Gives panels a minimum height on mobile so they don't squash */
+  min-height: 800px; 
+}
+
+@media (min-width: 1024px) {
+  .pb-grid {
+    flex-direction: row;
+    height: calc(100vh - 12rem); /* Dynamic height for desktop viewport */
+    min-height: 600px;
+  }
+}
+
+.pb-panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background-color: var(--bg-surface, #1e293b);
+  border: 1px solid var(--border-light, #334155);
+  border-radius: 0.75rem;
+  overflow: hidden;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+.pb-panel-header {
+  padding: 0.75rem 1rem;
+  background-color: rgba(15, 23, 42, 0.3);
+  border-bottom: 1px solid var(--border-light, #334155);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.pb-panel-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 600;
+  color: #e2e8f0;
+}
+
+/* Formatting Toolbar */
+.format-toolbar { display: flex; align-items: center; gap: 0.25rem; }
+.btn-format {
+  background: transparent; border: none; padding: 0.375rem; border-radius: 0.375rem;
+  color: #94a3b8; cursor: pointer; display: flex; align-items: center; justify-content: center;
+  transition: all 0.2s;
+}
+.btn-format:hover { background-color: rgba(51, 65, 85, 0.5); color: #f8fafc; }
+.toolbar-divider { width: 1px; height: 16px; background-color: #475569; margin: 0 0.25rem; }
+
+/* Markdown Area */
+.md-editor {
+  flex: 1; width: 100%; resize: none; background: transparent; border: none;
+  padding: 1.5rem; color: #cbd5e1; font-family: monospace; font-size: 0.875rem;
+  line-height: 1.6; outline: none;
+}
+
+/* --- TABS SYSTEM --- */
+.pb-tabs {
+  display: flex; border-bottom: 1px solid var(--border-light, #334155); background-color: rgba(15, 23, 42, 0.3);
+}
+.pb-tab {
+  flex: 1; padding: 0.75rem 1rem; background: transparent; border: none;
+  border-bottom: 2px solid transparent; color: #94a3b8; font-size: 0.875rem; font-weight: 500;
+  cursor: pointer; transition: all 0.2s;
+}
+.pb-tab:hover { color: #e2e8f0; background-color: rgba(51, 65, 85, 0.2); }
+.pb-tab.active { color: var(--primary, #06b6d4); border-bottom-color: var(--primary, #06b6d4); background-color: rgba(6, 182, 212, 0.05); }
+
+.pb-panel-body {
+  flex: 1; display: flex; flex-direction: column; overflow-y: auto; background-color: #0f172a;
+}
+
+/* Pseudo Code Editor */
+.code-header {
+  padding: 0.75rem 1rem; border-bottom: 1px solid var(--border-light);
+  display: flex; justify-content: space-between; align-items: center;
+  background-color: var(--bg-surface);
+}
+.lang-select {
+  background-color: #334155; border: 1px solid #475569; color: #f1f5f9;
+  padding: 0.25rem 0.75rem; border-radius: 0.375rem; font-size: 0.75rem; outline: none; cursor: pointer;
+}
+
+.code-area { flex: 1; display: flex; position: relative; font-family: monospace; font-size: 0.875rem; }
+.line-numbers {
+  width: 3rem; background-color: rgba(15, 23, 42, 0.5); border-right: 1px solid var(--border-light);
+  padding: 1rem 0.5rem; text-align: right; color: #64748b; user-select: none; line-height: 1.5;
+}
+.code-content { padding: 1rem; color: #cbd5e1; line-height: 1.5; white-space: pre-wrap; flex: 1; }
+
+/* Test Cases UI */
+.tc-list { padding: 1rem; display: flex; flex-direction: column; gap: 1rem; }
+.tc-card {
+  background-color: var(--bg-surface); border: 1px solid var(--border-light);
+  border-radius: 0.5rem; padding: 1rem;
+}
+.tc-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem; }
+.tc-title { font-size: 0.875rem; font-weight: 600; color: #cbd5e1; }
+
+.tc-grid { display: grid; grid-template-columns: 1fr; gap: 0.75rem; }
+.tc-field label { display: block; font-size: 0.6875rem; font-weight: 600; text-transform: uppercase; color: #64748b; margin-bottom: 0.25rem; }
+.tc-field textarea {
+  width: 100%; background-color: #0f172a; border: 1px solid #334155; border-radius: 0.25rem;
+  padding: 0.5rem; font-family: monospace; font-size: 0.75rem; color: #e2e8f0; outline: none; resize: vertical;
+}
+.tc-field textarea:focus { border-color: var(--primary); }
+
+.btn-add-tc {
+  width: 100%; display: flex; align-items: center; justify-content: center; gap: 0.5rem;
+  padding: 0.75rem; border: 1px dashed var(--primary); border-radius: 0.5rem;
+  background-color: transparent; color: var(--primary); font-size: 0.875rem; font-weight: 500; cursor: pointer; transition: all 0.2s;
+}
+.btn-add-tc:hover { background-color: rgba(6, 182, 212, 0.1); }
+
+/* Switch for public/hidden test cases */
+.switch-sm { position: relative; display: inline-block; width: 36px; height: 20px; }
+.switch-sm input { opacity: 0; width: 0; height: 0; }
+.slider-sm { position: absolute; cursor: pointer; inset: 0; background-color: #475569; transition: .3s; border-radius: 20px; }
+.slider-sm:before { position: absolute; content: ""; height: 14px; width: 14px; left: 3px; bottom: 3px; background-color: white; transition: .3s; border-radius: 50%; }
+input:checked + .slider-sm { background-color: #10b981; }
+input:checked + .slider-sm:before { transform: translateX(16px); }
