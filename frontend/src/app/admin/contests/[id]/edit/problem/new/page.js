@@ -90,8 +90,6 @@ export default function CreateProblemInNewContestPage({ params }) {
         showToast('Problem created successfully!', 'success');
         
         sessionStorage.removeItem('currentProblemDraft'); 
-        
-        // 🚀 CRITICAL FIX: Only remove the problems cache. Leave the contest data cache alone!
         sessionStorage.removeItem(`edit_probs_${contestId}`);
         
         router.push(`/admin/contests/${contestId}/edit`);

@@ -16,7 +16,6 @@ export default function AIProblemGenerator({ allowedLangs, onApply }) {
     { label: 'Hard', value: 'Hard' }
   ];
 
-  // 🚀 INJECTED ALL EDITOR FORMATTING CAPABILITIES & STRICT INLINE RULES
   const generateInternalPrompt = () => {
     return `You are an expert competitive programming problem setter. Create a coding problem based on this request: "${promptText}".
 Difficulty: ${difficulty}.
@@ -54,17 +53,14 @@ DESCRIPTION FORMATTING GUIDE (Use these exact options):
   };
 
   const processAndApplyData = (parsed) => {
-    ['codeStubs', 'solutions', 'driverCode'].forEach(sec => {
-      if (parsed[sec] && parsed[sec]['Python'] && !parsed[sec]['Python 3']) {
-        parsed[sec]['Python 3'] = parsed[sec]['Python'];
-        delete parsed[sec]['Python'];
-      }
-    });
-
+    // 🚀 We completely removed the destructive Python mapping. 
+    // The Workspace Component is now smart enough to resolve keys automatically.
+    
     if (parsed.testCases) {
       parsed.testCases = parsed.testCases.map((tc, i) => ({
         ...tc,
-        id: tc.id || `ai-tc-${Date.now()}-${i}`
+        id: tc.id || `ai-tc-${Date.now()}-${i}`,
+        isHidden: tc.isHidden || false
       }));
     }
 

@@ -59,16 +59,19 @@ export default function EditProblemInNewContestPage({ params }) {
         setDescription(p.description || '');
         setDiff(p.diff || 'Medium');
         setTag(p.tag || '');
-        setCodeStubs(p.codeStubs || {});
-        setSolutions(p.solution || {});
         
-        let parsedDriverCode = {};
-        if (typeof p.driverCode === 'string') {
-            try { parsedDriverCode = JSON.parse(p.driverCode); } catch(e) {}
-        } else if (p.driverCode) {
-            parsedDriverCode = p.driverCode;
-        }
-        setDriverCode(parsedDriverCode);
+        // 🚀 SAFE PARSER: Ensures DB strings become objects correctly
+        const parseJSON = (val) => {
+            if (!val) return {};
+            if (typeof val === 'string') {
+                try { return JSON.parse(val); } catch(e) { return {}; }
+            }
+            return val;
+        };
+
+        setCodeStubs(parseJSON(p.codeStubs));
+        setSolutions(parseJSON(p.solution)); // DB uses 'solution'
+        setDriverCode(parseJSON(p.driverCode));
         
         if (p.testCases && p.testCases.length > 0) {
             setTestCases(p.testCases);
@@ -116,9 +119,7 @@ export default function EditProblemInNewContestPage({ params }) {
 
         showToast('Problem updated successfully!', 'success');
         
-        // 🚀 CRITICAL FIX: Only remove the problems cache. Leave the contest data cache alone!
         sessionStorage.removeItem(`edit_probs_${contestId}`);
-        
         router.push(`/admin/contests/${contestId}/edit`);
         
       } catch (error) {

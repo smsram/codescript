@@ -64,13 +64,32 @@ export default function CodeWorkspace({
   const handleUpdateTC = (id, field, value) => onTCsChange(activeTCs.map(tc => tc.id === id ? { ...tc, [field]: value } : tc));
   const handleRemoveTC = (id) => onTCsChange(activeTCs.filter(tc => tc.id !== id));
 
-  // 🚀 UPDATED: Test Execution Engine (Driver Code is now 100% Optional)
+  // 🚀 SMART RESOLVER: Fixes mismatches between "Python" and "Python 3" automatically
+  const getLangValue = (mapObj, langKey) => {
+    if (!mapObj || typeof mapObj !== 'object') return '';
+    if (mapObj[langKey] !== undefined) return mapObj[langKey];
+    
+    const target = langKey.toLowerCase().replace(/\s+/g, '');
+    for (const [k, v] of Object.entries(mapObj)) {
+        const current = k.toLowerCase().replace(/\s+/g, '');
+        if (
+            current === target || 
+            (target.includes('python') && current.includes('python')) ||
+            (target.includes('c++') && current === 'cpp') ||
+            (target === 'cpp' && current.includes('c++'))
+        ) {
+            return v;
+        }
+    }
+    return '';
+  };
+
   const handleRunTests = async () => {
-    if (!activeSols[selectedLang]?.trim()) return showToast(`Please provide a Reference Solution for ${selectedLang}.`, "warning");
-    
-    // 🗑️ REMOVED THE DRIVER CODE CHECK! 
-    // Users can now write full programs (like `public static void main`) directly in the Solution box.
-    
+    // 🚀 Uses the smart resolver to fetch the actual code to execute
+    const currentSol = getLangValue(activeSols, selectedLang);
+    const currentDriver = getLangValue(activeDrivers, selectedLang);
+
+    if (!currentSol?.trim()) return showToast(`Please provide a Reference Solution for ${selectedLang}.`, "warning");
     if (!activeTCs || activeTCs.length === 0) return showToast("Please add at least one test case to run.", "warning");
 
     setIsExecuting(true);
@@ -88,8 +107,8 @@ export default function CodeWorkspace({
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify({
           language: normalizedLang,
-          solutionCode: activeSols[selectedLang],
-          driverCode: activeDrivers[selectedLang] || "", // Safely pass empty string if omitted
+          solutionCode: currentSol,
+          driverCode: currentDriver || "", 
           testCases: activeTCs
         })
       });
@@ -194,7 +213,7 @@ export default function CodeWorkspace({
                     <div className="code-area" style={{ height: '350px', padding: '16px' }}>
                       <textarea 
                         spellCheck="false" 
-                        value={activeStubs[selectedLang] || ''}
+                        value={getLangValue(activeStubs, selectedLang)}
                         onChange={(e) => onStubsChange({ ...activeStubs, [selectedLang]: e.target.value })}
                         style={textAreaStyle} 
                         placeholder={`// Write initial ${selectedLang} stub...\n// E.g. def twoSum(nums): pass`}
@@ -209,7 +228,7 @@ export default function CodeWorkspace({
                     <div className="code-area" style={{ height: '350px', padding: '16px' }}>
                       <textarea 
                         spellCheck="false" 
-                        value={activeSols[selectedLang] || ''}
+                        value={getLangValue(activeSols, selectedLang)}
                         onChange={(e) => onSolsChange({ ...activeSols, [selectedLang]: e.target.value })}
                         style={textAreaStyle} 
                         placeholder={`// Write your ${selectedLang} solution here...\n// If you omit Driver Code, this must be a full program that reads from STDIN and prints to STDOUT.`}
@@ -226,7 +245,7 @@ export default function CodeWorkspace({
                   <div className="code-area" style={{ height: '350px', padding: '16px' }}>
                     <textarea 
                       spellCheck="false" 
-                      value={activeDrivers[selectedLang] || ''}
+                      value={getLangValue(activeDrivers, selectedLang)}
                       onChange={(e) => onDriversChange({ ...activeDrivers, [selectedLang]: e.target.value })}
                       style={textAreaStyle} 
                       placeholder={`// (OPTIONAL) Write the hidden execution logic here...\n// Python Example:\n// if __name__ == '__main__':\n//    import sys, json\n//    lines = sys.stdin.read().splitlines()\n//    print(Solution().func(json.loads(lines[0])))\n\n// Java Example:\n// public class Main {\n//    public static void main(String[] args) {\n//        // logic...\n//    }\n// }`}
