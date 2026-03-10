@@ -4,6 +4,8 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Skeleton from '@/components/ui/Skeleton';
 import { showToast } from '@/components/ui/Toast';
+import { confirmAlert } from '@/components/ui/AlertConfirm'; // 🚀 Added Alert Confirm
+import ThemeToggle from '@/components/ui/ThemeToggle'; // 🚀 Added Theme Toggle
 import { MoreOptions, MoreOptionsItem } from '@/components/ui/MoreOptions';
 import './dashboard.css';
 
@@ -48,21 +50,18 @@ export default function StudentDashboard() {
     
     fetchDashboard();
 
-    // Start ticking clock for the countdown
     const timer = setInterval(() => setCurrentTime(Date.now()), 1000);
     return () => clearInterval(timer);
   }, []);
 
   const getInitials = (name) => name ? name.split(' ').map(n => n[0]).join('').substring(0,2).toUpperCase() : 'ST';
 
-  // HELPER: Convert the database's artificial UTC back into a real absolute timestamp
   const getRealTime = (dateString) => {
     if (!dateString) return 0;
-    const fakeUtc = new Date(dateString).getTime(); 
-    return fakeUtc - (330 * 60000); // Subtract 5 hours 30 mins to get true universal time
+    const cleanStr = dateString.endsWith('Z') ? dateString.slice(0, -1) : dateString;
+    return new Date(`${cleanStr}+05:30`).getTime();
   };
 
-  // HELPER: Format Upcoming Date explicitly to IST
   const formatUpcomingTime = (dateString) => {
     if (!dateString) return "TBA";
     const realTime = getRealTime(dateString);
@@ -76,7 +75,6 @@ export default function StudentDashboard() {
     }) + ' IST';
   };
 
-  // HELPER: Calculate live countdown string
   const getCountdown = (dateString) => {
     if (!dateString) return "";
     const targetTime = getRealTime(dateString);
@@ -97,15 +95,26 @@ export default function StudentDashboard() {
     return res.join(' ');
   };
 
+  // 🚀 FIXED: Using AlertConfirm component for graceful UI
   const handleLogout = () => {
-    if (confirm("Are you sure you want to logout?")) {
-      localStorage.removeItem('token');
-      sessionStorage.clear();
-      router.replace('/login');
-    }
+    confirmAlert({
+      title: "Logout",
+      message: "Are you sure you want to logout?",
+      confirmText: "Yes, Logout",
+      cancelText: "Cancel",
+      isDanger: true,
+      onConfirm: () => {
+        localStorage.removeItem('token');
+        sessionStorage.clear();
+        router.replace('/login');
+      }
+    });
   };
 
   const handleExamClick = (exam) => {
+    if (exam.sessionStatus === 'KICKED' || exam.sessionStatus === 'SUBMITTED') {
+       return router.push(`/exam/${exam.id}/submissions`);
+    }
     router.push(`/exam/${exam.id}/lobby`);
   };
 
@@ -125,12 +134,10 @@ export default function StudentDashboard() {
       
       const json = await res.json();
       
-      // Rule: Prevent joining if it's a draft
       if (json.contest.status === 'DRAFT') {
         throw new Error("This contest is still a draft and cannot be joined yet.");
       }
 
-      // Success! Move to lobby
       router.push(`/exam/${json.contest.id}/lobby`);
       
     } catch (err) {
@@ -157,10 +164,9 @@ export default function StudentDashboard() {
           </div>
 
           <div className="sd-user-actions">
-            <button className="sd-btn-notify">
-              <span className="material-symbols-outlined">notifications</span>
-              <span className="sd-notify-dot"></span>
-            </button>
+            {/* 🚀 ADDED: Theme Toggle Button */}
+            <ThemeToggle />
+            
             <div className="sd-divider"></div>
             
             <div className="sd-user-profile" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -268,18 +274,31 @@ export default function StudentDashboard() {
                   </div>
                 ))
               ) : data.exams.length === 0 ? (
-                <div style={{ padding: '3rem 1rem', textAlign: 'center', background: '#0f172a', borderRadius: '12px', border: '1px dashed #334155', color: '#64748b' }}>
+                /* 🚀 FIXED: Theme-adaptive empty state */
+                <div style={{ padding: '3rem 1rem', textAlign: 'center', background: 'var(--sd-card)', borderRadius: '12px', border: '1px dashed var(--sd-border)', color: 'var(--sd-text-muted)' }}>
                   <span className="material-symbols-outlined" style={{ fontSize: '48px', opacity: 0.5, marginBottom: '8px' }}>event_available</span>
                   <p>No active exams right now.</p>
                 </div>
               ) : (
                 data.exams.map((exam) => {
-                  const isLive = exam.status === 'Live' || (exam.startTime && getRealTime(exam.startTime) <= currentTime);
+                  const isTerminated = exam.sessionStatus === 'KICKED';
+                  const isSubmitted = exam.sessionStatus === 'SUBMITTED';
+                  const isLive = !isTerminated && !isSubmitted && (exam.status === 'Live' || (exam.startTime && getRealTime(exam.startTime) <= currentTime));
                   
                   return (
-                    <div key={exam.id} className={`sd-exam-card ${isLive ? 'active' : ''}`} style={{ border: !isLive ? '1px solid rgba(251, 146, 60, 0.3)' : '' }}>
+                    <div key={exam.id} className={`sd-exam-card ${isLive ? 'active' : ''}`} style={{ border: isTerminated ? '1px solid rgba(239, 68, 68, 0.3)' : (!isLive && !isSubmitted ? '1px solid rgba(251, 146, 60, 0.3)' : '') }}>
                       
-                      {isLive ? (
+                      {isTerminated ? (
+                        <div className="sd-live-badge" style={{ background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', border: '1px solid rgba(239, 68, 68, 0.2)' }}>
+                          <span className="material-symbols-outlined" style={{ fontSize: '14px', marginRight: '4px' }}>gavel</span>
+                          Terminated
+                        </div>
+                      ) : isSubmitted ? (
+                        <div className="sd-live-badge" style={{ background: 'rgba(16, 185, 129, 0.1)', color: '#10b981', border: '1px solid rgba(16, 185, 129, 0.2)' }}>
+                          <span className="material-symbols-outlined" style={{ fontSize: '14px', marginRight: '4px' }}>task_alt</span>
+                          Submitted
+                        </div>
+                      ) : isLive ? (
                         <div className="sd-live-badge">
                           <div className="sd-dot-ping-wrap">
                             <span className="sd-dot-ping"></span>
@@ -303,7 +322,7 @@ export default function StudentDashboard() {
                         <div className="sd-exam-meta">
                           <div className="sd-meta-item">
                             <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>schedule</span>
-                            <span>{isLive ? 'In Progress' : formatUpcomingTime(exam.startTime)}</span>
+                            <span>{isTerminated || isSubmitted ? 'Concluded' : (isLive ? 'In Progress' : formatUpcomingTime(exam.startTime))}</span>
                           </div>
                           <div className="sd-meta-item">
                             <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>quiz</span>
@@ -315,12 +334,13 @@ export default function StudentDashboard() {
                       <button 
                         onClick={() => handleExamClick(exam)}
                         className={`sd-btn-exam ${isLive ? 'live' : ''}`} 
+                        /* 🚀 FIXED: Theme-adaptive unselected state */
                         style={{ 
-                          background: !isLive ? 'rgba(255,255,255,0.05)' : '', 
-                          color: !isLive ? '#cbd5e1' : '' 
+                          background: isTerminated ? 'rgba(239, 68, 68, 0.1)' : (!isLive ? 'var(--sd-hover-bg)' : ''), 
+                          color: isTerminated ? '#ef4444' : (!isLive ? 'var(--sd-text-main)' : '') 
                         }}
                       >
-                        {isLive ? 'Take Test' : 'View Details'}
+                        {isTerminated || isSubmitted ? 'View Results' : (isLive ? 'Take Test' : 'View Details')}
                       </button>
                     </div>
                   );
@@ -342,14 +362,14 @@ export default function StudentDashboard() {
                 <span className="material-symbols-outlined sd-stat-bg-icon">check_circle</span>
                 <p className="sd-stat-label">Avg Pass Rate</p>
                 <div className="sd-stat-val">
-                  {loading ? <Skeleton width="60px" height="32px" /> : data.stats.avgPassRate}
+                  {loading ? <Skeleton width="60px" height="32px" /> : (data.stats?.avgPassRate || "0%")}
                 </div>
               </div>
               <div className="sd-stat-card">
                 <span className="material-symbols-outlined sd-stat-bg-icon">bug_report</span>
                 <p className="sd-stat-label">Problems Solved</p>
                 <div className="sd-stat-val">
-                  {loading ? <Skeleton width="40px" height="32px" /> : data.stats.totalSolved}
+                  {loading ? <Skeleton width="40px" height="32px" /> : (data.stats?.totalSolved || 0)}
                 </div>
               </div>
             </div>
@@ -370,7 +390,7 @@ export default function StudentDashboard() {
                     </div>
                   ))
                 ) : data.history.length === 0 ? (
-                   <p style={{ color: '#64748b', fontSize: '0.875rem', textAlign: 'center', padding: '1rem 0' }}>No attempted exams yet.</p>
+                   <p style={{ color: 'var(--sd-text-muted)', fontSize: '0.875rem', textAlign: 'center', padding: '1rem 0' }}>No attempted exams yet.</p>
                 ) : (
                   data.history.map((item) => (
                     <div key={item.id} className="sd-history-item">

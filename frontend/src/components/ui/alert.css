@@ -26,27 +26,28 @@
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 @keyframes fadeOut { from { opacity: 1; } to { opacity: 0; } }
 
-/* The Dialog Box */
+/* The Dialog Box - 🚀 THEME ADAPTIVE */
 .alert-dialog {
   position: relative;
   width: 90%;
   max-width: 450px;
-  background-color: #0f172a; /* Slate 900 */
-  border: 1px solid #1e293b; /* Slate 800 */
+  background-color: var(--bg-surface); 
+  border: 1px solid var(--border-light); 
   border-radius: 12px;
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.15), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
   padding: 20px;
   pointer-events: auto;
   z-index: 10000;
+  transition: background-color 0.3s ease, border-color 0.3s ease;
+}
+
+[data-theme='dark'] .alert-dialog {
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.3);
 }
 
 /* Dialog Animations */
-.alert-slide-in {
-  animation: slideDown 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-}
-.alert-slide-out {
-  animation: slideUp 0.3s ease-in forwards;
-}
+.alert-slide-in { animation: slideDown 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+.alert-slide-out { animation: slideUp 0.3s ease-in forwards; }
 
 @keyframes slideDown {
   from { opacity: 0; transform: translateY(-40px) scale(0.95); }
@@ -58,40 +59,25 @@
 }
 
 /* Layout & Typography */
-.alert-header {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 12px;
-}
-
-.alert-icon {
-  font-size: 24px;
-}
+.alert-header { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+.alert-icon { font-size: 24px; }
 
 .alert-title {
   margin: 0;
-  color: #f8fafc;
+  color: var(--text-main);
   font-size: 1.125rem;
   font-weight: 600;
 }
 
-.alert-body {
-  margin-bottom: 24px;
-}
-
+.alert-body { margin-bottom: 24px; }
 .alert-message {
   margin: 0;
-  color: #94a3b8;
+  color: var(--text-muted);
   font-size: 0.95rem;
   line-height: 1.5;
 }
 
-.alert-footer {
-  display: flex;
-  justify-content: flex-end;
-  gap: 12px;
-}
+.alert-footer { display: flex; justify-content: flex-end; gap: 12px; }
 
 /* Buttons */
 .alert-btn {
@@ -106,27 +92,20 @@
 
 .alert-btn-cancel {
   background-color: transparent;
-  color: #cbd5e1;
-  border: 1px solid #334155;
+  color: var(--text-muted);
+  border: 1px solid var(--border-light);
 }
 .alert-btn-cancel:hover {
-  background-color: #1e293b;
-  color: #f8fafc;
+  background-color: var(--bg-surface-hover);
+  color: var(--text-main);
 }
 
-.alert-btn-primary {
-  background-color: #3b82f6;
-  color: #ffffff;
-}
+.alert-btn-primary { background-color: #3b82f6; color: #ffffff; }
 .alert-btn-primary:hover { background-color: #2563eb; }
 
-.alert-btn-danger {
-  background-color: #ef4444;
-  color: #ffffff;
-}
+.alert-btn-danger { background-color: #ef4444; color: #ffffff; }
 .alert-btn-danger:hover { background-color: #dc2626; }
 
-/* Responsive Adjustments */
 @media (max-width: 480px) {
   .alert-portal { padding-top: 1rem; }
   .alert-footer { flex-direction: column; }

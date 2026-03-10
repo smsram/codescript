@@ -14,18 +14,30 @@ export default function StudentExamLogs({ params }) {
   const [loading, setLoading] = useState(true);
   const [session, setSession] = useState(null);
   
-  // Grouped answers state
+  // Grouped answers & stats state
   const [groupedAnswers, setGroupedAnswers] = useState({});
   const [activeProblemId, setActiveProblemId] = useState(null);
   const [activeLang, setActiveLang] = useState(null);
+  const [totalQuestions, setTotalQuestions] = useState(0); // 🚀 NEW: Total questions tracker
   
   const socketRef = useRef(null);
 
-  // 🚀 Force display strictly in IST (Asia/Kolkata)
-  const formatIST = (dateStr, formatType = 'time') => {
-    if (!dateStr) return '--:--';
-    const date = new Date(dateStr);
+  // 🚀 FIXED: Bulletproof IST formatter that handles both DB strings and Socket timestamps
+  const formatIST = (dateInput, formatType = 'time') => {
+    if (!dateInput) return '--:--';
     
+    let date;
+    // If it's a string from the DB, strip the 'Z' and force it into IST
+    if (typeof dateInput === 'string' && dateInput.includes('T')) {
+      const cleanStr = dateInput.endsWith('Z') ? dateInput.slice(0, -1) : dateInput;
+      date = new Date(`${cleanStr}+05:30`);
+    } else {
+      // If it's a timestamp number (like Date.now() from Socket), parse it normally
+      date = new Date(dateInput);
+    }
+    
+    if (isNaN(date.getTime())) return '--:--';
+
     if (formatType === 'time') {
       return date.toLocaleTimeString('en-US', { timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit' });
     }
@@ -65,6 +77,10 @@ export default function StudentExamLogs({ params }) {
         const data = await res.json();
         setSession(data.session);
         
+        // 🚀 Calculate total questions from session relations, fallback to fetched lengths
+        const totalProbCount = data.totalProblems || data.session?.contest?._count?.problems || data.answers?.length || 0;
+        setTotalQuestions(totalProbCount);
+
         const grouped = groupData(data.answers || []);
         setGroupedAnswers(grouped);
         
@@ -102,7 +118,7 @@ export default function StudentExamLogs({ params }) {
                 ...updated[update.problemId].attempts[update.language],
                 code: update.code,
                 status: update.status,
-                updatedAt: new Date()
+                updatedAt: Date.now() // 🚀 Use numerical timestamp to bypass string parsing conflicts
               };
               return updated;
             });
@@ -149,6 +165,11 @@ export default function StudentExamLogs({ params }) {
   const activeProblem = groupedAnswers[activeProblemId];
   const activeAttempt = activeProblem ? activeProblem.attempts[activeLang] : null;
   const problemsList = Object.values(groupedAnswers);
+
+  // 🚀 Compute Accepted Questions
+  const acceptedCount = problemsList.filter(prob => 
+    Object.values(prob.attempts).some(a => a.status === 'Accepted')
+  ).length;
 
   return (
     <div className="logs-container">
@@ -249,11 +270,12 @@ export default function StudentExamLogs({ params }) {
                          <span className={`status-dot status-text-${activeAttempt.status.toLowerCase().replace(/\s+/g, '-')}`}>●</span>
                          <span className="file-name">Current Status: {activeAttempt.status}</span>
                        </div>
+                       {/* 🚀 Date object/string perfectly handled here */}
                        <span className="last-saved">Saved: {formatIST(activeAttempt.updatedAt, 'full')}</span>
                     </div>
                   )}
 
-                  {/* 🚀 Flawless Scrollable Pre/Code Block */}
+                  {/* Flawless Scrollable Pre/Code Block */}
                   <div className="code-block-wrapper custom-scrollbar">
                     <pre className="code-block">
                       <code>{activeAttempt?.code || "// Awaiting code input..."}</code>
@@ -273,16 +295,27 @@ export default function StudentExamLogs({ params }) {
           
           <div className="metrics-box">
              <div className="pane-header"><h3>Session Metrics</h3></div>
+             
+             {/* 🚀 NEW: Problems Solved UI */}
+             <div className="metric-row">
+                <span className="metric-label">Problems Solved</span>
+                <span className="metric-value" style={{ color: '#10b981', fontWeight: 600 }}>
+                   {acceptedCount} / {Math.max(totalQuestions, problemsList.length)}
+                </span>
+             </div>
+
              <div className="metric-row">
                 <span className="metric-label">Joined Exam (IST)</span>
                 <span className="metric-value">{formatIST(session.joinedAt, 'time')}</span>
              </div>
+             
              {session.completedAt && (
                <div className="metric-row">
                   <span className="metric-label">Finished Exam (IST)</span>
                   <span className="metric-value">{formatIST(session.completedAt, 'time')}</span>
                </div>
              )}
+             
              <div className="metric-row">
                 <span className="metric-label">Security Strikes</span>
                 <span className={`metric-value ${session.strikes > 0 ? 'text-danger' : 'text-success'}`}>

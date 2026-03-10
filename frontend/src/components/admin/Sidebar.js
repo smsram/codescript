@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import Skeleton from '@/components/ui/Skeleton'; // Ensure this path is correct
+import Skeleton from '@/components/ui/Skeleton';
 
 export default function Sidebar({ isOpen, closeMenu }) {
   const pathname = usePathname();
@@ -42,7 +42,6 @@ export default function Sidebar({ isOpen, closeMenu }) {
       } catch (error) {
         console.error("Sidebar fetch error:", error);
       } finally {
-        // Delay slightly for smooth transition if data loads instantly
         setTimeout(() => setLoading(false), 300);
       }
     };
@@ -68,7 +67,12 @@ export default function Sidebar({ isOpen, closeMenu }) {
   return (
     <aside className={`admin-sidebar ${isOpen ? 'open' : ''}`}>
       <div className="sidebar-header">
-        <div className="sidebar-logo-circle">C</div>
+        {/* 🚀 Replaced Circle with Logo Image */}
+        <img 
+          src="/CodeScriptLogo.png" 
+          alt="CodeScript Logo" 
+          style={{ height: '32px', width: '32px', objectFit: 'contain' }} 
+        />
         <div className="sidebar-title">
           <h1>CodeScript</h1>
           <p>Admin Workspace</p>
@@ -97,12 +101,9 @@ export default function Sidebar({ isOpen, closeMenu }) {
         <div className="admin-profile">
           {loading ? (
             <>
-              {/* Avatar Skeleton */}
               <Skeleton width="40px" height="40px" borderRadius="10px" />
               <div className="admin-profile-info" style={{ marginLeft: '12px' }}>
-                {/* Name Skeleton */}
                 <Skeleton width="100px" height="14px" className="mb-2" />
-                {/* Role Skeleton */}
                 <Skeleton width="60px" height="10px" />
               </div>
             </>

@@ -69,9 +69,18 @@ export default function ExamSubmissionsPage({ params }) {
     return { type: 'err', icon: 'help', label: status };
   };
 
+  // 🚀 FIXED: Tell the browser to format it strictly as UTC so NO offset is added.
+  // Since the DB time is already IST, this guarantees it prints exactly what the DB has.
   const formatTime = (dateStr) => {
+    if (!dateStr) return '--:--';
     const d = new Date(dateStr);
-    return d.toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+    return d.toLocaleString('en-US', { 
+      timeZone: 'UTC', // Forces the browser to not add the 5:30 offset
+      month: 'short', 
+      day: 'numeric', 
+      hour: 'numeric', 
+      minute: '2-digit' 
+    });
   };
 
   // Filtering
@@ -209,8 +218,8 @@ export default function ExamSubmissionsPage({ params }) {
            <div className="code-modal" onClick={e => e.stopPropagation()}>
               <div className="code-modal-header">
                  <div>
-                    <h3 style={{ margin: 0, fontSize: '16px', color: '#f8fafc' }}>{selectedCode.problem?.title}</h3>
-                    <p style={{ margin: '4px 0 0 0', fontSize: '12px', color: '#94a3b8' }}>Language: {selectedCode.language}</p>
+                    <h3 style={{ margin: 0, fontSize: '16px', color: 'var(--text-main)' }}>{selectedCode.problem?.title}</h3>
+                    <p style={{ margin: '4px 0 0 0', fontSize: '12px', color: 'var(--text-muted)' }}>Language: {selectedCode.language}</p>
                  </div>
                  <button className="btn-close-modal" onClick={() => setSelectedCode(null)}>
                     <span className="material-symbols-outlined">close</span>

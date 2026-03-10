@@ -47,9 +47,9 @@ export default function LoginPage() {
       // 2. Role-Based Redirection Logic
       setTimeout(() => {
         if (data.user.role === 'ADMIN') {
-          window.location.href = '/admin'; // Redirect admins to admin dashboard
+          window.location.href = '/admin';
         } else {
-          window.location.href = '/dashboard'; // Redirect students to student dashboard
+          window.location.href = '/dashboard';
         }
       }, 1500);
 
@@ -66,6 +66,16 @@ export default function LoginPage() {
       <div className="login-left">
         <div className="form-container">
           
+          {/* Mobile Logo Section */}
+          <div className="mobile-logo">
+            <img 
+              src="/CodeScriptLogo.png" 
+              alt="Logo" 
+              style={{ height: '32px', width: 'auto', objectFit: 'contain' }} 
+            />
+            <span>CodeScript</span>
+          </div>
+
           <div className="login-header">
             <h1>Welcome back</h1>
             <p>Enter your credentials to access your portal</p>
@@ -152,7 +162,12 @@ export default function LoginPage() {
         
         <div className="glass-card">
           <div className="icon-box">
-            <span className="material-symbols-outlined">terminal</span>
+            {/* 🚀 Image Logo replaced icon while keeping glass effect container */}
+            <img 
+              src="/CodeScriptLogo.png" 
+              alt="CodeScript Logo" 
+              style={{ width: '70%', height: '70%', objectFit: 'contain' }} 
+            />
           </div>
           
           <div className="brand-text">

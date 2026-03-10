@@ -3,8 +3,17 @@ import React, { useState, useEffect, useMemo } from 'react';
 import Skeleton from '@/components/ui/Skeleton';
 import './dashboard.css';
 
+// 🚀 FIXED: Bulletproof IST string parsing to strip fake UTC 'Z' markers
+const getRealTime = (dateString) => {
+  if (!dateString) return 0;
+  const cleanStr = dateString.endsWith('Z') ? dateString.slice(0, -1) : dateString;
+  return new Date(`${cleanStr}+05:30`).getTime();
+};
+
 const timeAgo = (dateString) => {
-  const diffMins = Math.floor((Date.now() - new Date(dateString).getTime()) / 60000);
+  const targetTime = getRealTime(dateString);
+  const diffMins = Math.floor((Date.now() - targetTime) / 60000);
+  
   if (diffMins < 1) return 'Just now';
   if (diffMins < 60) return `${diffMins} mins ago`;
   const diffHrs = Math.floor(diffMins / 60);
@@ -14,9 +23,10 @@ const timeAgo = (dateString) => {
 
 const calculateProgress = (start, end) => {
   if (!start || !end) return { percent: 0, text: 'No Time Limit', color: '#08b2d4', bg: 'rgba(8, 178, 212, 0.1)' };
+  
   const now = Date.now();
-  const s = new Date(start).getTime();
-  const e = new Date(end).getTime();
+  const s = getRealTime(start);
+  const e = getRealTime(end);
   
   if (now >= e) return { percent: 100, text: 'Finished', color: '#10b981', bg: 'rgba(16, 185, 129, 0.1)' };
   if (now <= s) return { percent: 0, text: 'Not Started', color: '#94a3b8', bg: 'rgba(148, 163, 184, 0.1)' };
@@ -39,7 +49,7 @@ export default function AdminDashboard() {
   const [stats, setStats] = useState({
     users: 0, activeContests: 0, submissions: 0, ramUsage: 0,
     chartData: [0, 0, 0, 0, 0, 0, 0],
-    systemLogs: [], // 🚀 NEW: State for our rolling logs
+    systemLogs: [], 
     contests: []
   });
   const [loading, setLoading] = useState(true);
@@ -58,7 +68,7 @@ export default function AdminDashboard() {
           submissions: data.submissionsToday || 0,
           ramUsage: data.ramUsage || 0,
           chartData: data.chartData || [0, 0, 0, 0, 0, 0, 0],
-          systemLogs: data.systemLogs || [], // 🚀 Set from API
+          systemLogs: data.systemLogs || [], 
           contests: data.activeContestsList || []
         });
       }

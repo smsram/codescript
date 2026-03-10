@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from 'react';
-import { createPortal } from 'react-dom'; // 🚀 The secret weapon
+import { createPortal } from 'react-dom';
 
 export function MoreOptions({ children }) {
   const [isOpen, setIsOpen] = useState(false);
@@ -10,7 +10,6 @@ export function MoreOptions({ children }) {
   const triggerRef = useRef(null);
   const menuRef = useRef(null);
 
-  // Close when clicking outside
   useEffect(() => {
     function handleClick(e) {
       if (menuRef.current && !menuRef.current.contains(e.target) && !triggerRef.current.contains(e.target)) {
@@ -21,14 +20,11 @@ export function MoreOptions({ children }) {
     return () => document.removeEventListener("mousedown", handleClick);
   }, [isOpen]);
 
-  // Handle positioning
   const toggleMenu = () => {
     if (!isOpen && triggerRef.current) {
       const rect = triggerRef.current.getBoundingClientRect();
-      const menuHeight = 160; // Estimated height of your menu
+      const menuHeight = 160; 
       const spaceBelow = window.innerHeight - rect.bottom;
-
-      // If there's less than 160px below, open upward
       const shouldOpenUp = spaceBelow < menuHeight;
       
       setCoords({
@@ -41,11 +37,8 @@ export function MoreOptions({ children }) {
     setIsOpen(!isOpen);
   };
 
-  // Close menu on scroll to prevent "floating away"
   useEffect(() => {
-    if (isOpen) {
-      window.addEventListener("scroll", () => setIsOpen(false), { passive: true });
-    }
+    if (isOpen) window.addEventListener("scroll", () => setIsOpen(false), { passive: true });
     return () => window.removeEventListener("scroll", () => setIsOpen(false));
   }, [isOpen]);
 
@@ -55,9 +48,9 @@ export function MoreOptions({ children }) {
         ref={triggerRef}
         onClick={toggleMenu}
         style={{
-          background: isOpen ? 'rgba(255, 255, 255, 0.05)' : 'transparent',
+          background: isOpen ? 'var(--bg-surface-hover)' : 'transparent',
           border: 'none',
-          color: isOpen ? '#f8fafc' : '#64748b',
+          color: isOpen ? 'var(--text-main)' : 'var(--text-muted)',
           cursor: 'pointer',
           padding: '4px',
           borderRadius: '50%',
@@ -70,7 +63,6 @@ export function MoreOptions({ children }) {
         <span className="material-symbols-outlined">more_vert</span>
       </button>
 
-      {/* 🚀 PORTAL: This renders the menu outside the table container */}
       {isOpen && createPortal(
         <div 
           ref={menuRef}
@@ -78,11 +70,11 @@ export function MoreOptions({ children }) {
             position: 'absolute',
             top: openUpward ? 'auto' : `${coords.top + 8}px`,
             bottom: openUpward ? `${window.innerHeight - coords.top + 8}px` : 'auto',
-            left: `${coords.left - 180}px`, // Align right edge with button
-            backgroundColor: '#1e293b', 
-            border: '1px solid #334155', 
+            left: `${coords.left - 180}px`,
+            backgroundColor: 'var(--bg-surface)', 
+            border: '1px solid var(--border-light)', 
             borderRadius: '8px',
-            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.5)',
+            boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.2)',
             zIndex: 99999,
             minWidth: '180px',
             padding: '4px 0',
@@ -103,7 +95,7 @@ export function MoreOptions({ children }) {
             return child;
           })}
         </div>,
-        document.body // This moves it to the body level
+        document.body 
       )}
 
       <style dangerouslySetInnerHTML={{ __html: `
@@ -121,16 +113,15 @@ export function MoreOptionsItem({ children, onClick, danger = false, icon }) {
       style={{
         display: 'flex', alignItems: 'center', gap: '8px', width: '100%',
         padding: '10px 16px', background: 'transparent', border: 'none',
-        fontSize: '14px', color: danger ? '#f87171' : '#cbd5e1',
+        fontSize: '14px', 
+        color: danger ? '#ef4444' : 'var(--text-main)',
         cursor: 'pointer', textAlign: 'left', transition: 'all 0.15s ease'
       }}
       onMouseEnter={(e) => {
-        e.currentTarget.style.backgroundColor = danger ? 'rgba(239, 68, 68, 0.1)' : 'rgba(15, 23, 42, 0.5)';
-        e.currentTarget.style.color = danger ? '#fca5a5' : '#fff';
+        e.currentTarget.style.backgroundColor = danger ? 'rgba(239, 68, 68, 0.1)' : 'var(--bg-surface-hover)';
       }}
       onMouseLeave={(e) => {
         e.currentTarget.style.backgroundColor = 'transparent';
-        e.currentTarget.style.color = danger ? '#f87171' : '#cbd5e1';
       }}
     >
       {icon && <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>{icon}</span>}

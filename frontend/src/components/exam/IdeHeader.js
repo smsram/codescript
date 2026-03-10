@@ -2,6 +2,7 @@
 
 import React from 'react';
 import Skeleton from '@/components/ui/Skeleton';
+import ThemeToggle from '@/components/ui/ThemeToggle'; // 🚀 Imported ThemeToggle
 
 export default function IdeHeader({ loading, contest, timeLeft, formatTime, strikes, isConnected, handleSubmitExam }) {
   return (
@@ -24,7 +25,7 @@ export default function IdeHeader({ loading, contest, timeLeft, formatTime, stri
       <div className="header-center">
         <div className="timer-badge" style={{ borderColor: timeLeft < 300 ? 'rgba(239,68,68,0.3)' : '' }}>
           <span className="material-symbols-outlined" style={{ color: timeLeft < 300 ? '#ef4444' : '#f59e0b', fontSize: '18px' }}>timer</span>
-          <span className="timer-text" style={{ color: timeLeft < 300 ? '#ef4444' : '#f59e0b' }}>
+          <span className="timer-text" style={{ color: timeLeft < 300 ? '#ef4444' : 'var(--text-main)' }}> {/* 🚀 Theme Variable */}
             {loading ? '--:--:--' : (timeLeft !== null ? formatTime(timeLeft) : '--:--:--')}
           </span>
         </div>
@@ -32,9 +33,12 @@ export default function IdeHeader({ loading, contest, timeLeft, formatTime, stri
 
       <div className="header-right">
         
+        {/* 🚀 ADDED: Theme Toggle Button */}
+        <ThemeToggle />
+
         {/* 🛑 ONLY SHOW STRIKES IF LIMIT IS GREATER THAN 0 */}
         {!loading && contest?.strictMode && contest?.strikes > 0 && (
-           <div className="network-status" style={{ marginRight: '10px', color: strikes > 0 ? '#ef4444' : '#94a3b8' }}>
+           <div className="network-status" style={{ marginRight: '10px', color: strikes > 0 ? '#ef4444' : 'var(--text-muted)' }}>
              <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>warning</span>
              Strikes: {strikes}/{contest.strikes}
            </div>

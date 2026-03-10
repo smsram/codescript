@@ -1,5 +1,6 @@
 import React from 'react';
-import Link from 'next/link'; // 🚀 Added Next.js Link
+import Link from 'next/link';
+import ThemeToggle from '@/components/ui/ThemeToggle'; // 🚀 Added ThemeToggle import
 import './page.css'; 
 
 export default function Home() {
@@ -11,8 +12,12 @@ export default function Home() {
         <div className="container nav-inner">
           {/* Logo */}
           <div className="nav-logo">
-            <span className="material-symbols-outlined icon">code_blocks</span>
-            <span>CodeScript</span>
+            <img 
+              src="/CodeScriptLogo.png" 
+              alt="CodeScript Logo" 
+              style={{ height: '32px', width: 'auto', objectFit: 'contain' }} 
+            />
+            <span style={{ marginLeft: '8px' }}>CodeScript</span>
           </div>
 
           {/* Links */}
@@ -23,7 +28,11 @@ export default function Home() {
 
           {/* CTAs */}
           <div className="nav-actions">
-            {/* 🚀 Changed to Links */}
+            {/* 🚀 Added Theme Switcher here */}
+            <ThemeToggle />
+            
+            <div className="sd-divider" style={{ height: '20px', width: '1px', background: 'var(--border-light)', margin: '0 4px' }}></div>
+            
             <Link href="/login" className="btn btn-ghost btn-login">Log In</Link>
             <Link href="/signup" className="btn btn-primary">Sign Up</Link>
           </div>
@@ -53,7 +62,6 @@ export default function Home() {
           </p>
 
           <div className="hero-buttons anim-fade-up delay-3">
-            {/* 🚀 Changed to Links pointing to Dashboard and Login */}
             <Link href="/dashboard" className="btn btn-primary btn-large">
               <span className="material-symbols-outlined">terminal</span>
               Start Coding Now
@@ -69,7 +77,6 @@ export default function Home() {
             <div className="ide-glow-bg"></div>
             <div className="ide-container">
               
-              {/* Mac-style Header */}
               <div className="ide-header">
                 <div className="mac-dot mac-red"></div>
                 <div className="mac-dot mac-yellow"></div>
@@ -77,14 +84,11 @@ export default function Home() {
                 <div className="ide-filename">main.cpp</div>
               </div>
 
-              {/* Content */}
               <div className="ide-body">
-                {/* Line Numbers */}
                 <div className="ide-lines">
                   1<br/>2<br/>3<br/>4<br/>5<br/>6<br/>7<br/>8<br/>9<br/>10<br/>11<br/>12<br/>13
                 </div>
 
-                {/* Code Area */}
                 <div className="ide-code">
 <span className="syn-purple">#include</span> <span className="syn-green">&lt;iostream&gt;</span><br/>
 <span className="syn-purple">#include</span> <span className="syn-green">&lt;vector&gt;</span><br/>
@@ -110,11 +114,9 @@ export default function Home() {
         {/* GGU Showcase Section */}
         <section id="ggu" className="section-padding container">
           <div className="grid-2 anim-fade-up">
-            
-            {/* Left: Image/Showcase */}
             <div className="showcase-img">
               <img 
-                src="https://images.unsplash.com/photo-1541339907198-e08756dedf3f?auto=format&fit=crop&q=80&w=1000" 
+                src="https://tse4.mm.bing.net/th/id/OIP.QYMqbF1d_Fo6b6DM_9fUOgHaE8" 
                 alt="Modern university campus"
               />
               <div className="img-overlay"></div>
@@ -127,7 +129,6 @@ export default function Home() {
               </div>
             </div>
 
-            {/* Right: Content */}
             <div className="showcase-content">
               <div className="icon-box">
                 <span className="material-symbols-outlined">hub</span>
@@ -200,11 +201,9 @@ export default function Home() {
                 <h2>Ready for your next challenge?</h2>
                 <p>Join thousands of GGU students mastering their craft. Start solving real-world problems today.</p>
               </div>
-              {/* 🚀 Changed to Link pointing to Signup */}
               <Link href="/signup" className="btn btn-large btn-white">Create Student Account</Link>
             </div>
 
-            {/* Simple Footer Links */}
             <div className="footer-bottom">
               <div className="copyright">
                 © {new Date().getFullYear()} Godavari Global University. All rights reserved.

@@ -76,15 +76,23 @@ export default function RegisterPage() {
       setLoading(false);
     }
   };
-  console.log("Current API URL:", process.env.NEXT_PUBLIC_API_URL);
 
   return (
     <div className="register-split-wrapper">
       
       {/* --- LEFT SIDE: FORM --- */}
-      <div className="register-left">
+      <div className="register-left" style={{ width: '100%', flex: '1 1 50%' }}>
         <div className="register-form-container">
           
+          <div className="mobile-logo-reg">
+            <img 
+              src="/CodeScriptLogo.png" 
+              alt="Logo" 
+              style={{ height: '32px', width: 'auto', objectFit: 'contain' }} 
+            />
+            <span>CodeScript</span>
+          </div>
+
           <div className="register-header">
             <h1>Create your account</h1>
             <p>Join the CodeScript platform</p>
@@ -206,13 +214,17 @@ export default function RegisterPage() {
       </div>
 
       {/* --- RIGHT SIDE: BRANDING --- */}
-      <div className="register-right">
+      <div className="register-right" style={{ flex: '1 1 50%' }}>
         <div className="reg-bg-glow-top"></div>
         <div className="reg-bg-glow-bottom"></div>
 
         <div className="reg-glass-card">
           <div className="reg-icon-container">
-            <span className="material-symbols-outlined">data_object</span>
+            <img 
+              src="/CodeScriptLogo.png" 
+              alt="CodeScript Logo" 
+              style={{ width: '70%', height: '70%', objectFit: 'contain' }} 
+            />
           </div>
 
           <h2 className="reg-quote">

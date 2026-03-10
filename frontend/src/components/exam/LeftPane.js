@@ -2,7 +2,7 @@
 
 import React, { useState, useRef } from 'react';
 import Skeleton from '@/components/ui/Skeleton';
-import MarkdownRenderer from '@/components/ui/MarkdownRenderer'; // 🚀 Imported the renderer
+import MarkdownRenderer from '@/components/ui/MarkdownRenderer';
 
 export default function LeftPane({ loading, leftWidth, questions, activeIdx, setActiveIdx, statusMap, updateStatus }) {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
@@ -77,18 +77,17 @@ export default function LeftPane({ loading, leftWidth, questions, activeIdx, set
         ) : currentProb ? (
           <>
             <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '1rem' }}>
-              <h2 style={{ fontSize: '1.5rem', fontWeight: 700, color: '#f8fafc' }}>{activeIdx + 1}. {currentProb.title}</h2>
+              <h2 style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--text-main)' }}>{activeIdx + 1}. {currentProb.title}</h2>
               <span className={`diff-badge diff-${currentProb.diff?.toLowerCase()}`}>{currentProb.diff}</span>
             </div>
             
-            {/* 🚀 REMOVED CONFLICTING INLINE STYLES - Let the Markdown component handle colors & alignment natively */}
             <div className="exam-problem-prose" style={{ width: '100%', overflowX: 'hidden' }}>
               <MarkdownRenderer content={currentProb.description} />
             </div>
             
           </>
         ) : (
-          <p style={{ color: '#64748b' }}>No problem selected.</p>
+          <p style={{ color: 'var(--text-muted)' }}>No problem selected.</p>
         )}
       </div>
       
@@ -97,7 +96,7 @@ export default function LeftPane({ loading, leftWidth, questions, activeIdx, set
         <button className="btn-nav" disabled={loading || activeIdx === 0} onClick={() => { setActiveIdx(prev => prev - 1); updateStatus(questions[activeIdx - 1].id, 'visited'); }}>
           <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>chevron_left</span> Prev
         </button>
-        <span style={{ fontSize: '0.75rem', color: '#64748b' }}>
+        <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
           {loading ? <Skeleton width="80px" height="12px" /> : `Question ${activeIdx + 1} of ${questions.length}`}
         </span>
         <button className="btn-nav" disabled={loading || activeIdx === questions.length - 1} onClick={() => { setActiveIdx(prev => prev + 1); updateStatus(questions[activeIdx + 1].id, 'visited'); }}>

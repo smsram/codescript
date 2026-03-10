@@ -17,11 +17,14 @@ export default function ContestDetailsPage({ params }) {
   const examId = resolvedParams.id;
 
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false); 
+  
   const [contestTitle, setContestTitle] = useState("");
   const [contestStatus, setContestStatus] = useState(""); 
   const [dynamicStatus, setDynamicStatus] = useState(""); 
   const [timeDisplay, setTimeDisplay] = useState("--:--");
   const [contestLimit, setContestLimit] = useState(3);
+  const [totalQuestions, setTotalQuestions] = useState(0); 
   
   const [dates, setDates] = useState({ start: null, end: null });
   const [scheduleText, setScheduleText] = useState("");
@@ -31,19 +34,19 @@ export default function ContestDetailsPage({ params }) {
   const [filter, setFilter] = useState('all');
   const [search, setSearch] = useState('');
 
-  // Export State
+  const [refreshInterval, setRefreshInterval] = useState(30);
+
   const [exportOpen, setExportOpen] = useState(false);
   
   const socketRef = useRef(null);
+  const autoRefreshTimerRef = useRef(null);
 
-  // Helper: Convert Backend IST strings to Local Browser Time (US/Local)
   const convertIstToLocal = useCallback((dateStr) => {
     if (!dateStr) return 0;
-    const date = new Date(dateStr);
-    return date.getTime() - (330 * 60000); 
+    const cleanStr = dateStr.endsWith('Z') ? dateStr.slice(0, -1) : dateStr;
+    return new Date(`${cleanStr}+05:30`).getTime(); 
   }, []);
 
-  // Helper: Format Schedule & Duration
   const formatScheduleDetails = useCallback((startMs, endMs) => {
     if (!startMs || !endMs) return;
 
@@ -66,81 +69,69 @@ export default function ContestDetailsPage({ params }) {
 
     setScheduleText(`${startString} - ${endString}`);
 
-    // Duration calculation
     const diffMins = Math.round((endMs - startMs) / 60000);
     const hours = Math.floor(diffMins / 60);
     const mins = diffMins % 60;
     setDurationText(`${hours > 0 ? `${hours}h ` : ''}${mins > 0 ? `${mins}m` : ''}`);
   }, []);
 
-  // ==========================================
-  // 1. FETCH INITIAL DATA & SETUP SOCKET
-  // ==========================================
-  useEffect(() => {
+  const fetchContestData = useCallback(async (isSilentRefresh = false) => {
     const token = localStorage.getItem('token');
     if (!token) return router.push('/login');
 
-    let isMounted = true;
+    if (!isSilentRefresh) setLoading(true);
+    else setRefreshing(true);
 
-    const initPage = async () => {
-      try {
-        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/contests/${examId}/details`, {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/contests/${examId}/details`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
 
-        if (!res.ok) throw new Error("Failed to fetch");
-        const data = await res.json();
-        
-        if (isMounted) {
-          setContestTitle(data.contestTitle);
-          setContestStatus(data.contestStatus);
-          setContestLimit(data.contestStrikes);
-          setDates({ start: data.startTime, end: data.endTime });
-          
-          const localStart = convertIstToLocal(data.startTime);
-          const localEnd = convertIstToLocal(data.endTime);
-          formatScheduleDetails(localStart, localEnd);
+      if (!res.ok) throw new Error("Failed to fetch");
+      const data = await res.json();
+      
+      setContestTitle(data.contestTitle);
+      setContestStatus(data.contestStatus);
+      setContestLimit(data.contestStrikes);
+      setTotalQuestions(data.totalProblems || 0); 
+      setDates({ start: data.startTime, end: data.endTime });
+      
+      const localStart = convertIstToLocal(data.startTime);
+      const localEnd = convertIstToLocal(data.endTime);
+      formatScheduleDetails(localStart, localEnd);
 
-          setStudents(data.sessions || []);
-          setLoading(false);
-        }
+      setStudents(data.sessions || []);
 
-        if (data.contestStatus !== 'DRAFT') {
-           const now = new Date().getTime();
-           const end = convertIstToLocal(data.endTime);
-           
-           if (now <= end) {
-             socketRef.current = io(process.env.NEXT_PUBLIC_API_URL, { auth: { token } });
-             socketRef.current.on('connect', () => {
-               socketRef.current.emit('join-admin-monitor', { examId });
-             });
-             socketRef.current.on('live-stats-update', (liveData) => {
-               if (isMounted) {
-                 setStudents(liveData.sessions || []);
-                 setContestLimit(liveData.contestStrikes || 3);
-               }
-             });
-           }
-        }
-      } catch (err) {
-        if (isMounted) {
-          showToast("Failed to load contest details", "error");
-          setLoading(false);
-        }
+      if (data.contestStatus !== 'DRAFT' && !isSilentRefresh && !socketRef.current) {
+         const now = new Date().getTime();
+         if (now <= localEnd) {
+           socketRef.current = io(process.env.NEXT_PUBLIC_API_URL, { auth: { token } });
+           socketRef.current.on('connect', () => {
+             socketRef.current.emit('join-admin-monitor', { examId });
+           });
+           socketRef.current.on('live-stats-update', (liveData) => {
+             setStudents(liveData.sessions || []);
+             setContestLimit(liveData.contestStrikes || 3);
+             setTotalQuestions(liveData.totalProblems || 0);
+           });
+         }
       }
-    };
-
-    initPage();
-
-    return () => {
-      isMounted = false;
-      if (socketRef.current) socketRef.current.disconnect();
-    };
+    } catch (err) {
+      if (!isSilentRefresh) showToast("Failed to load contest details", "error");
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
   }, [examId, router, convertIstToLocal, formatScheduleDetails]);
 
-  // ==========================================
-  // 2. REAL-TIME COUNTDOWN ENGINE
-  // ==========================================
+  useEffect(() => {
+    fetchContestData();
+    return () => {
+      if (socketRef.current) socketRef.current.disconnect();
+      if (autoRefreshTimerRef.current) clearInterval(autoRefreshTimerRef.current);
+    };
+  }, [fetchContestData]);
+
   useEffect(() => {
     if (!dates.start || !dates.end) return;
 
@@ -175,58 +166,108 @@ export default function ContestDetailsPage({ params }) {
     return () => clearInterval(timer);
   }, [dates, contestStatus, convertIstToLocal]);
 
-  // ==========================================
-  // 3. ADMIN ACTIONS
-  // ==========================================
+  useEffect(() => {
+    if (autoRefreshTimerRef.current) {
+      clearInterval(autoRefreshTimerRef.current);
+    }
+    
+    if (dynamicStatus === 'ACTIVE' && refreshInterval > 0) {
+      autoRefreshTimerRef.current = setInterval(() => {
+        fetchContestData(true); 
+      }, refreshInterval * 1000);
+    }
+
+    return () => {
+      if (autoRefreshTimerRef.current) clearInterval(autoRefreshTimerRef.current);
+    };
+  }, [dynamicStatus, fetchContestData, refreshInterval]);
+
+  // 🚀 FIXED: Forces HTTP call so the Database is strictly updated, then uses Socket to notify the student.
   const handleResetExam = (userId, studentName) => {
     confirmAlert({
       title: "Reset Student Exam?",
       message: `Resetting the exam for ${studentName} allows them to retake it with 0 strikes. Drafts are kept.`,
       confirmText: "Yes, Reset Exam", cancelText: "Cancel", isDanger: false, darkOverlay: true,
       onConfirm: async () => {
-        if (socketRef.current && socketRef.current.connected) {
-           socketRef.current.emit('admin-reset-student', { examId, userId });
-           showToast(`Reset command sent for ${studentName}`, "success");
-        } else {
-           try {
-             const token = localStorage.getItem('token');
-             await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/contests/${examId}/reset-student`, {
-               method: 'POST', headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-               body: JSON.stringify({ userId })
-             });
-             showToast(`Exam reset for ${studentName}`, "success");
-             window.location.reload();
-           } catch (err) { showToast("Failed to reset via HTTP", "error"); }
+        
+        // Optimistic UI Update
+        setStudents(prev => prev.map(s => s.userId === userId ? { ...s, status: 'IN_PROGRESS', strikes: 0 } : s));
+
+        try {
+          const token = localStorage.getItem('token');
+          // 1. DELETE from Database reliably via HTTP
+          const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/contests/${examId}/reset-student`, {
+            method: 'POST', 
+            headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ userId })
+          });
+          
+          if (!res.ok) throw new Error("Backend database reset failed.");
+
+          // 2. ONLY if HTTP succeeds, emit the socket event to force the student's browser to refresh
+          if (socketRef.current && socketRef.current.connected) {
+             socketRef.current.emit('admin-reset-student', { examId, userId });
+          }
+
+          showToast(`Exam reset for ${studentName}`, "success");
+          fetchContestData(true); // Pull fresh truth from DB
+        } catch (err) { 
+          showToast("Failed to reset. Check server logs.", "error"); 
+          fetchContestData(true); // Revert optimistic update if HTTP failed
         }
       }
     });
   };
 
+  // 🚀 FIXED: Forces HTTP call for termination just like Reset.
   const handleTerminateSession = (userId, studentName) => {
     confirmAlert({
       title: "Terminate Session?",
       message: `Forcibly end the exam for ${studentName}. They will be kicked immediately.`,
       confirmText: "Terminate Exam", cancelText: "Cancel", isDanger: true, darkOverlay: true,
-      onConfirm: () => {
-        if (socketRef.current && socketRef.current.connected) {
-           socketRef.current.emit('admin-terminate-student', { examId, userId });
-           showToast(`Termination command sent for ${studentName}`, "success");
+      onConfirm: async () => {
+        
+        // Optimistic UI Update
+        setStudents(prev => prev.map(s => s.userId === userId ? { ...s, status: 'KICKED' } : s));
+
+        try {
+          const token = localStorage.getItem('token');
+          // Note: You must ensure this route exists in your backend controller!
+          await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/contests/${examId}/terminate-student`, {
+             method: 'POST', 
+             headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+             body: JSON.stringify({ userId })
+          });
+
+          // Kick them out via socket
+          if (socketRef.current && socketRef.current.connected) {
+             socketRef.current.emit('admin-terminate-student', { examId, userId });
+          }
+          showToast(`Termination successful for ${studentName}`, "success");
+          fetchContestData(true);
+        } catch (err) {
+          // If you don't have a specific HTTP route for termination, fallback to just socket
+          if (socketRef.current && socketRef.current.connected) {
+             socketRef.current.emit('admin-terminate-student', { examId, userId });
+             showToast(`Termination command sent for ${studentName}`, "success");
+          } else {
+             showToast("Failed to terminate student.", "error");
+          }
+          fetchContestData(true);
         }
       }
     });
   };
 
-  // ==========================================
-  // 4. EXPORT LOGIC
-  // ==========================================
   const handleExportCSV = () => {
-    const headers = ["Name", "Email", "Status", "Strikes", "Joined At"];
+    const headers = ["Name", "Email", "Status", "Strikes", "Attempted", "Total Questions"];
     const rows = filteredStudents.map(s => [
       `"${s.user.name}"`, 
       `"${s.user.email}"`, 
       s.status, 
       s.strikes, 
-      `"${new Date(convertIstToLocal(s.joinedAt)).toLocaleString()}"`
+      s.attempted || 0,
+      totalQuestions
     ]);
     
     const csvContent = [headers.join(","), ...rows.map(e => e.join(","))].join("\n");
@@ -246,9 +287,6 @@ export default function ContestDetailsPage({ params }) {
     setExportOpen(false);
   };
 
-  // ==========================================
-  // 5. FILTERING & STATS
-  // ==========================================
   const filteredStudents = students.filter(s => {
     const matchesSearch = s.user.name.toLowerCase().includes(search.toLowerCase()) || s.user.email.toLowerCase().includes(search.toLowerCase());
     if (filter === 'all') return matchesSearch;
@@ -276,12 +314,42 @@ export default function ContestDetailsPage({ params }) {
       {/* HEADER */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '24px', flexWrap: 'wrap', gap: '16px' }}>
         <div>
-          <h2 style={{ fontSize: '1.5rem', fontWeight: 600, color: '#f8fafc', margin: '0 0 8px 0', minHeight: '32px' }}>
-            {loading ? <Skeleton width="300px" height="32px" /> : contestTitle}
-          </h2>
-          <div style={{ display: 'flex', gap: '12px', alignItems: 'center', minHeight: '24px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
+            <h2 style={{ fontSize: '1.5rem', fontWeight: 600, color: '#f8fafc', margin: 0, minHeight: '32px' }}>
+              {loading ? <Skeleton width="300px" height="32px" /> : contestTitle}
+            </h2>
+            
+            {/* ALL STATES: Manual Refresh Button */}
+            {!loading && (
+              <button 
+                onClick={() => fetchContestData(true)} 
+                title="Force Refresh Data"
+                style={{ background: 'transparent', border: 'none', color: '#94a3b8', cursor: 'pointer', display: 'flex', alignItems: 'center', padding: '4px', borderRadius: '4px', transition: 'all 0.2s' }}
+                onMouseEnter={(e) => { e.currentTarget.style.color = '#3b82f6'; e.currentTarget.style.background = 'rgba(59, 130, 246, 0.1)'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.color = '#94a3b8'; e.currentTarget.style.background = 'transparent'; }}
+              >
+                <span className={`material-symbols-outlined ${refreshing ? 'animate-spin' : ''}`} style={{ fontSize: '20px' }}>refresh</span>
+              </button>
+            )}
+            
+            {/* LIVE STATE: Auto Refresh Settings */}
+            {!loading && isLive && (
+               <div style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'rgba(15, 23, 42, 0.5)', padding: '2px 8px', borderRadius: '4px', border: '1px solid #334155' }}>
+                 <span className="material-symbols-outlined" style={{ fontSize: '14px', color: '#94a3b8' }}>sync</span>
+                 <input 
+                   type="number" 
+                   value={refreshInterval} 
+                   onChange={(e) => setRefreshInterval(Number(e.target.value))} 
+                   style={{ width: '40px', background: 'transparent', border: 'none', color: '#f8fafc', fontSize: '0.75rem', outline: 'none', textAlign: 'center' }}
+                 />
+                 <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>sec</span>
+               </div>
+            )}
+          </div>
+
+          <div style={{ display: 'flex', gap: '12px', alignItems: 'center', minHeight: '24px', flexWrap: 'wrap' }}>
             {loading ? (
-              <Skeleton width="200px" height="24px" borderRadius="6px" />
+              <Skeleton width="400px" height="24px" borderRadius="6px" />
             ) : (
               <>
                 <div style={{ 
@@ -298,14 +366,6 @@ export default function ContestDetailsPage({ params }) {
                   {dynamicStatus}
                 </div>
                 
-                {/* Timer (ONLY if Live) */}
-                {isLive && (
-                  <span style={{ color: '#ef4444', fontSize: '0.9rem', fontFamily: 'monospace', fontWeight: 600 }}>
-                    {timeDisplay}
-                  </span>
-                )}
-
-                {/* Schedule & Duration Display */}
                 {scheduleText && (
                   <span style={{ color: '#94a3b8', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
                     <span style={{color: '#334155'}}>|</span>
@@ -313,36 +373,42 @@ export default function ContestDetailsPage({ params }) {
                     {scheduleText} <span style={{fontWeight: 600}}>({durationText})</span>
                   </span>
                 )}
+
+                {isLive && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#ef4444', background: 'rgba(239, 68, 68, 0.1)', padding: '4px 10px', borderRadius: '6px', border: '1px solid rgba(239, 68, 68, 0.2)' }}>
+                    <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>timer</span>
+                    <span style={{ fontSize: '0.85rem', fontFamily: 'monospace', fontWeight: 700 }}>
+                      {timeDisplay} left
+                    </span>
+                  </div>
+                )}
               </>
             )}
           </div>
         </div>
         
-        {/* EXPORT & ACTION BUTTONS */}
+        {/* EXPORT BUTTON */}
         <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
           {loading ? (
             <Skeleton width="120px" height="38px" borderRadius="6px" />
           ) : (
-            <>
-              {/* Export Dropdown */}
-              <div style={{ position: 'relative' }}>
-                <button onClick={() => setExportOpen(!exportOpen)} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 16px', borderRadius: '6px', background: '#3b82f6', color: '#fff', border: 'none', cursor: 'pointer', fontSize: '0.875rem', fontWeight: 500, transition: 'background 0.2s' }}>
-                  <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>download</span>
-                  Export
-                  <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>{exportOpen ? 'expand_less' : 'expand_more'}</span>
-                </button>
-                {exportOpen && (
-                  <div style={{ position: 'absolute', top: '100%', right: 0, marginTop: '8px', background: '#1e293b', border: '1px solid #334155', borderRadius: '6px', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.5)', zIndex: 50, minWidth: '150px', overflow: 'hidden' }}>
-                    <button onClick={handleExportCSV} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 16px', background: 'transparent', border: 'none', color: '#f8fafc', cursor: 'pointer', textAlign: 'left', fontSize: '0.875rem' }} onMouseEnter={(e) => e.target.style.background='#334155'} onMouseLeave={(e) => e.target.style.background='transparent'}>
-                      <span className="material-symbols-outlined" style={{ fontSize: '18px', color: '#10b981' }}>csv</span> Excel / CSV
-                    </button>
-                    <button onClick={handleExportPDF} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 16px', background: 'transparent', border: 'none', color: '#f8fafc', cursor: 'pointer', textAlign: 'left', fontSize: '0.875rem' }} onMouseEnter={(e) => e.target.style.background='#334155'} onMouseLeave={(e) => e.target.style.background='transparent'}>
-                      <span className="material-symbols-outlined" style={{ fontSize: '18px', color: '#ef4444' }}>picture_as_pdf</span> PDF Report
-                    </button>
-                  </div>
-                )}
-              </div>
-            </>
+            <div style={{ position: 'relative' }}>
+              <button onClick={() => setExportOpen(!exportOpen)} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 16px', borderRadius: '6px', background: '#3b82f6', color: '#fff', border: 'none', cursor: 'pointer', fontSize: '0.875rem', fontWeight: 500, transition: 'background 0.2s' }}>
+                <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>download</span>
+                Export
+                <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>{exportOpen ? 'expand_less' : 'expand_more'}</span>
+              </button>
+              {exportOpen && (
+                <div style={{ position: 'absolute', top: '100%', right: 0, marginTop: '8px', background: '#1e293b', border: '1px solid #334155', borderRadius: '6px', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.5)', zIndex: 50, minWidth: '150px', overflow: 'hidden' }}>
+                  <button onClick={handleExportCSV} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 16px', background: 'transparent', border: 'none', color: '#f8fafc', cursor: 'pointer', textAlign: 'left', fontSize: '0.875rem' }} onMouseEnter={(e) => e.target.style.background='#334155'} onMouseLeave={(e) => e.target.style.background='transparent'}>
+                    <span className="material-symbols-outlined" style={{ fontSize: '18px', color: '#10b981' }}>csv</span> Excel / CSV
+                  </button>
+                  <button onClick={handleExportPDF} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 16px', background: 'transparent', border: 'none', color: '#f8fafc', cursor: 'pointer', textAlign: 'left', fontSize: '0.875rem' }} onMouseEnter={(e) => e.target.style.background='#334155'} onMouseLeave={(e) => e.target.style.background='transparent'}>
+                    <span className="material-symbols-outlined" style={{ fontSize: '18px', color: '#ef4444' }}>picture_as_pdf</span> PDF Report
+                  </button>
+                </div>
+              )}
+            </div>
           )}
         </div>
       </div>
@@ -407,7 +473,7 @@ export default function ContestDetailsPage({ params }) {
             <thead>
               <tr>
                 <th>Student Details</th>
-                <th>Joined At</th>
+                <th>Attempted</th>
                 <th>Status</th>
                 <th>Tab-Switch Strikes</th>
                 <th style={{ textAlign: 'right' }}>Actions</th>
@@ -423,7 +489,7 @@ export default function ContestDetailsPage({ params }) {
                         <div className="student-info"><Skeleton width="120px" height="16px" className="mb-1" /><Skeleton width="160px" height="12px" /></div>
                       </div>
                     </td>
-                    <td><Skeleton width="60px" height="16px" /></td>
+                    <td><Skeleton width="40px" height="20px" borderRadius="10px" /></td>
                     <td><Skeleton width="90px" height="24px" borderRadius="12px" /></td>
                     <td><Skeleton width="80px" height="16px" /></td>
                     <td><div style={{ display: 'flex', justifyContent: 'flex-end' }}><Skeleton width="24px" height="24px" /></div></td>
@@ -451,8 +517,11 @@ export default function ContestDetailsPage({ params }) {
                       </div>
                     </td>
 
-                    <td className="ip-text">
-                      {new Date(convertIstToLocal(student.joinedAt)).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    <td>
+                      <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: 'rgba(56, 189, 248, 0.1)', color: '#38bdf8', padding: '4px 10px', borderRadius: '999px', fontSize: '0.8rem', fontWeight: 600 }}>
+                        <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>edit_document</span>
+                        {student.attempted || 0} / {totalQuestions}
+                      </div>
                     </td>
 
                     <td>

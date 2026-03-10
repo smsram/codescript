@@ -279,14 +279,14 @@ export default function RightPane({
   const renderConsoleBody = () => {
     if (isRunning) {
       return (
-        <div style={{ color: '#3b82f6', padding: '24px', display: 'flex', alignItems: 'center', gap: '12px', fontFamily: 'monospace', fontSize: '0.9rem' }}>
+        <div style={{ color: 'var(--primary)', padding: '24px', display: 'flex', alignItems: 'center', gap: '12px', fontFamily: 'monospace', fontSize: '0.9rem' }}>
           <span className="material-symbols-outlined animate-spin" style={{ fontSize: '20px' }}>sync</span>
           {execProgressMsg || "Executing code..."}
         </div>
       );
     }
     
-    if (!output) return <div style={{ color: '#94a3b8', padding: '16px' }}>Run your code to see test case results here.</div>;
+    if (!output) return <div style={{ color: 'var(--text-muted)', padding: '16px' }}>Run your code to see test case results here.</div>;
 
     if (!output.results) {
       return (
@@ -308,20 +308,20 @@ export default function RightPane({
 
     return (
       <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-        <div style={{ padding: '12px 16px', background: '#0f172a', borderBottom: '1px solid #1e293b', display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+        <div style={{ padding: '12px 16px', background: 'var(--bg-surface)', borderBottom: '1px solid var(--border-light)', display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
           <span style={{ fontWeight: 600, color: status === 'Accepted' ? '#10b981' : status === 'Stopped' ? '#f59e0b' : '#ef4444' }}>{status}</span>
-          <span style={{ fontSize: '0.85rem', color: '#64748b', display: 'flex', gap: '8px' }}>
+          <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)', display: 'flex', gap: '8px' }}>
              {publicCases.length > 0 && <span>Passed {passedPublic}/{publicCases.length} Public</span>}
              {publicCases.length > 0 && hiddenCases.length > 0 && <span>|</span>}
              {hiddenCases.length > 0 && <span>Passed {passedHidden}/{hiddenCases.length} Hidden</span>}
           </span>
         </div>
 
-        <div style={{ display: 'flex', overflowX: 'auto', borderBottom: '1px solid #1e293b', padding: '0 8px' }}>
+        <div style={{ display: 'flex', overflowX: 'auto', borderBottom: '1px solid var(--border-light)', padding: '0 8px', background: 'var(--bg-main)' }}>
           {results.map((r, i) => (
             <button key={i} onClick={() => setActiveTab(i)} style={{
-              background: 'transparent', padding: '10px 16px', cursor: 'pointer', border: 'none', borderBottom: activeTab === i ? '2px solid #3b82f6' : '2px solid transparent',
-              color: activeTab === i ? '#f8fafc' : '#94a3b8', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.85rem', fontWeight: 500, whiteSpace: 'nowrap'
+              background: 'transparent', padding: '10px 16px', cursor: 'pointer', border: 'none', borderBottom: activeTab === i ? '2px solid var(--primary)' : '2px solid transparent',
+              color: activeTab === i ? 'var(--text-main)' : 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.85rem', fontWeight: 500, whiteSpace: 'nowrap'
             }}>
               {r.isHidden && <span className="material-symbols-outlined" style={{ fontSize: '14px', opacity: 0.7 }}>lock</span>}
               <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: r.passed ? '#10b981' : (r.status === 'Runtime Error' || r.status === 'Time Limit Exceeded') ? '#ef4444' : '#f59e0b' }}></span> 
@@ -330,15 +330,15 @@ export default function RightPane({
           ))}
         </div>
 
-        <div style={{ padding: '16px', flex: 1, overflowY: 'auto', background: '#020617' }}>
+        <div style={{ padding: '16px', flex: 1, overflowY: 'auto', background: 'var(--bg-surface)' }}>
           {activeResult && activeResult.type === 'raw' ? (
             <pre style={{ margin: 0, color: '#ef4444', fontFamily: 'monospace', whiteSpace: 'pre-wrap' }}>{activeResult.output}</pre>
           ) : activeResult ? (
             <>
               {activeResult.isHidden ? (
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '40px 20px', color: '#64748b', background: '#0f172a', borderRadius: '8px', border: '1px dashed #1e293b' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '40px 20px', color: 'var(--text-muted)', background: 'var(--bg-main)', borderRadius: '8px', border: '1px dashed var(--border-light)' }}>
                   <span className="material-symbols-outlined" style={{ fontSize: '48px', marginBottom: '16px', opacity: 0.5 }}>lock</span>
-                  <h3 style={{ margin: '0 0 8px 0', color: '#e2e8f0', fontSize: '1.1rem' }}>Hidden Test Case</h3>
+                  <h3 style={{ margin: '0 0 8px 0', color: 'var(--text-main)', fontSize: '1.1rem' }}>Hidden Test Case</h3>
                   <p style={{ margin: 0, fontSize: '0.85rem', textAlign: 'center', maxWidth: '300px' }}>
                     Input and expected output are hidden.
                   </p>
@@ -355,15 +355,15 @@ export default function RightPane({
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                   <div>
-                    <div style={{ fontSize: '0.75rem', color: '#64748b', marginBottom: '6px' }}>Input</div>
-                    <div style={{ padding: '10px', background: '#1e293b', borderRadius: '6px', fontFamily: 'monospace', color: '#cbd5e1', fontSize: '0.85rem', whiteSpace: 'pre-wrap' }}>{activeResult.input}</div>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '6px' }}>Input</div>
+                    <div style={{ padding: '10px', background: 'var(--bg-main)', borderRadius: '6px', fontFamily: 'monospace', color: 'var(--text-main)', fontSize: '0.85rem', whiteSpace: 'pre-wrap', border: '1px solid var(--border-light)' }}>{activeResult.input}</div>
                   </div>
                   <div>
-                    <div style={{ fontSize: '0.75rem', color: '#64748b', marginBottom: '6px' }}>Expected Output</div>
-                    <div style={{ padding: '10px', background: '#1e293b', borderRadius: '6px', fontFamily: 'monospace', color: '#cbd5e1', fontSize: '0.85rem', whiteSpace: 'pre-wrap' }}>{activeResult.expected}</div>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '6px' }}>Expected Output</div>
+                    <div style={{ padding: '10px', background: 'var(--bg-main)', borderRadius: '6px', fontFamily: 'monospace', color: 'var(--text-main)', fontSize: '0.85rem', whiteSpace: 'pre-wrap', border: '1px solid var(--border-light)' }}>{activeResult.expected}</div>
                   </div>
                   <div>
-                    <div style={{ fontSize: '0.75rem', color: '#64748b', marginBottom: '6px' }}>Your Output</div>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '6px' }}>Your Output</div>
                     <div style={{ padding: '10px', background: activeResult.passed ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)', border: `1px solid ${activeResult.passed ? 'rgba(16, 185, 129, 0.2)' : 'rgba(239, 68, 68, 0.2)'}`, borderRadius: '6px', fontFamily: 'monospace', color: activeResult.passed ? '#10b981' : '#ef4444', fontSize: '0.85rem', whiteSpace: 'pre-wrap' }}>
                       {activeResult.actual}
                     </div>
@@ -405,7 +405,7 @@ export default function RightPane({
             
             <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
               
-              <button className="btn-ghost" onClick={() => triggerSave(true)} title={`Backup Code to Cloud (${syncStatus})`} style={{ color: syncStatus.includes('saved') ? '#10b981' : '#3b82f6', borderColor: syncStatus.includes('saved') ? 'rgba(16, 185, 129, 0.2)' : 'rgba(59, 130, 246, 0.2)' }}>
+              <button className="btn-ghost" onClick={() => triggerSave(true)} title={`Backup Code to Cloud (${syncStatus})`} style={{ color: syncStatus.includes('saved') ? '#10b981' : 'var(--primary)', borderColor: syncStatus.includes('saved') ? 'rgba(16, 185, 129, 0.2)' : 'var(--border-light)' }}>
                 <span className={`material-symbols-outlined ${syncStatus.includes('Saving') ? 'animate-bounce' : ''}`} style={{ fontSize: '18px' }}>
                   {syncStatus.includes('saved') ? 'cloud_done' : syncStatus.includes('Saving') ? 'cloud_upload' : 'cloud'}
                 </span>
@@ -427,7 +427,7 @@ export default function RightPane({
                 <button 
                   className="btn-ghost" 
                   onClick={() => { setConsoleHeight(300); setActiveTab(0); handleRunCode(); }} 
-                  style={{ color: '#34d399', borderColor: 'rgba(52, 211, 153, 0.5)' }}
+                  style={{ color: '#10b981', borderColor: 'rgba(16, 185, 129, 0.5)' }}
                 >
                   <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>play_arrow</span> Run
                 </button>
@@ -439,16 +439,16 @@ export default function RightPane({
 
       <div className="code-area" style={{ position: 'relative', display: 'flex', overflow: 'hidden' }}>
         {loading ? (
-          <div style={{ padding: '16px', width: '100%' }}>
+          <div style={{ padding: '16px', width: '100%', background: 'var(--bg-main)' }}>
             {[70, 45, 85, 30, 60].map((w, i) => <Skeleton key={i} width={`${w}%`} height="18px" className="mb-2" />)}
           </div>
         ) : (
           <>
-            <div ref={lineNumbersRef} className="line-numbers" style={{ padding: '16px 8px', textAlign: 'right', color: '#475569', userSelect: 'none', borderRight: '1px solid #1e293b', overflow: 'hidden', ...editorFontStyles }}>
+            <div ref={lineNumbersRef} className="line-numbers" style={{ ...editorFontStyles }}>
               {currentCode.split('\n').map((_, i) => <div key={i}>{i + 1}</div>)}
             </div>
             <div style={{ position: 'relative', flex: 1, overflow: 'hidden' }}>
-              <pre ref={preRef} style={{ position: 'absolute', inset: 0, margin: 0, padding: '16px', color: '#abb2bf', whiteSpace: 'pre', overflow: 'hidden', pointerEvents: 'none', ...editorFontStyles }} dangerouslySetInnerHTML={{ __html: highlightSyntax(currentCode) }} />
+              <pre ref={preRef} className="code-content" style={{ position: 'absolute', inset: 0, margin: 0, pointerEvents: 'none', ...editorFontStyles }} dangerouslySetInnerHTML={{ __html: highlightSyntax(currentCode) }} />
               
               <textarea 
                 ref={textareaRef}
@@ -460,7 +460,7 @@ export default function RightPane({
                 onPaste={preventCopyPaste}
                 onCut={preventCopyPaste}
                 spellCheck="false" 
-                style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', padding: '16px', margin: 0, border: 'none', resize: 'none', color: 'transparent', background: 'transparent', caretColor: '#56b6c2', outline: 'none', whiteSpace: 'pre', overflow: 'auto', ...editorFontStyles }} 
+                style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', padding: '1rem', margin: 0, border: 'none', resize: 'none', color: 'transparent', background: 'transparent', caretColor: '#56b6c2', outline: 'none', whiteSpace: 'pre', overflow: 'auto', ...editorFontStyles }} 
               />
             </div>
           </>
@@ -469,12 +469,12 @@ export default function RightPane({
 
       <div className="resizer-y" onMouseDown={handleDragYStart}></div>
 
-      <div className="console-pane" style={{ height: `${consoleHeight}px`, display: 'flex', flexDirection: 'column' }}>
+      <div className="console-pane" style={{ height: `${consoleHeight}px` }}>
         <div className="console-header" onClick={() => setConsoleHeight(prev => prev <= 36 ? 300 : 36)}>
           <span className="console-title"><span className="material-symbols-outlined" style={{ fontSize: '14px' }}>terminal</span> Console</span>
-          <span className="material-symbols-outlined">{consoleHeight > 36 ? 'expand_more' : 'expand_less'}</span>
+          <span className="material-symbols-outlined" style={{ color: 'var(--text-muted)' }}>{consoleHeight > 36 ? 'expand_more' : 'expand_less'}</span>
         </div>
-        {consoleHeight > 36 && <div style={{ flex: 1, overflow: 'hidden' }}>{renderConsoleBody()}</div>}
+        {consoleHeight > 36 && <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>{renderConsoleBody()}</div>}
       </div>
     </div>
   );

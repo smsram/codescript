@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { io } from 'socket.io-client';
 import { showToast } from '@/components/ui/Toast';
 import { confirmAlert } from '@/components/ui/AlertConfirm';
+import { useTheme } from '@/components/ui/ThemeProvider'; 
 import IdeHeader from '@/components/exam/IdeHeader';
 import LeftPane from '@/components/exam/LeftPane';
 import RightPane from '@/components/exam/RightPane';
@@ -15,6 +16,10 @@ export default function ExamIDE({ params }) {
   const router = useRouter();
   const resolvedParams = use(params);
   const examId = resolvedParams.id;
+
+  const { theme } = useTheme();
+  const themeRef = useRef(theme);
+  useEffect(() => { themeRef.current = theme; }, [theme]);
 
   const [loading, setLoading] = useState(true);
   const [examValidated, setExamValidated] = useState(false);
@@ -50,7 +55,7 @@ export default function ExamIDE({ params }) {
 
   const socketRef = useRef(null);
 
-  // 🚀 FIXED TIME PARSER
+  // Helper to parse IST strings safely from Backend
   const parseIST = (dateString) => {
     if (!dateString) return 0;
     const cleanStr = dateString.endsWith('Z') ? dateString.slice(0, -1) : dateString;
@@ -95,17 +100,14 @@ export default function ExamIDE({ params }) {
         const c = data.contest;
         const now = Date.now();
 
-        // 🚀 SAFE CHECK 1: Has the exam started? Redirect back to lobby if early.
         if (c.startTime) {
             const realStartTime = parseIST(c.startTime);
-            // 30-sec buffer allows entry slightly early if PC clocks are misaligned
             if (now < (realStartTime - 30000)) {
                 showToast("This exam has not started yet.", "warning");
                 return router.replace(`/exam/${examId}/lobby`); 
             }
         }
 
-        // 🚀 SAFE CHECK 2: Is the exam over?
         let realEndTime = null;
         if (c.endTime) {
             realEndTime = parseIST(c.endTime);
@@ -189,9 +191,6 @@ export default function ExamIDE({ params }) {
     fetchExam();
   }, [examId, router]);
 
-  // ==========================================
-  // SOCKET CONNECTION & OTHER CODE REMAINS EXACTLY THE SAME...
-  // ==========================================
 
   useEffect(() => {
     if (!examValidated) return; 
@@ -247,8 +246,12 @@ export default function ExamIDE({ params }) {
         handleSubmitExam(true, "KICKED"); 
       } else {
         confirmAlert({
-          title: "Violation Detected!", message: `Strike ${data.count} of ${data.limit}. Please remain on this screen.`,
-          confirmText: "I Understand", cancelText: null, isDanger: true, darkOverlay: true
+          title: "Violation Detected!", 
+          message: `Strike ${data.count} of ${data.limit}. Please remain on this screen.`,
+          confirmText: "I Understand", 
+          cancelText: null, 
+          isDanger: true, 
+          darkOverlay: themeRef.current === 'dark'
         });
       }
     });
@@ -279,8 +282,14 @@ export default function ExamIDE({ params }) {
 
     if (currentCode !== lastSavedCode) {
       setSyncStatus("Saving...");
+      // 🚀 Explicitly capturing Date.now() here bypasses any clock misalignments on backend
       socketRef.current.emit('save-draft', {
-        examId, userId, problemId: currentProb.id, language: lang, code: currentCode
+        examId, 
+        userId, 
+        problemId: currentProb.id, 
+        language: lang, 
+        code: currentCode,
+        clientTimestamp: Date.now() // Send the exact millisecond it was saved to help backend log
       });
       lastSavedCodeMap.current[trackingKey] = currentCode;
       setTimeout(() => setSyncStatus("All changes saved"), 1500);
@@ -398,8 +407,12 @@ export default function ExamIDE({ params }) {
     if (force) { doSubmit(); return; }
 
     confirmAlert({
-      title: "Submit Exam?", message: "Are you sure you want to finish? You cannot change your answers after proceeding.",
-      confirmText: "Yes, Submit", cancelText: "No, Continue", isDanger: false, darkOverlay: true,
+      title: "Submit Exam?", 
+      message: "Are you sure you want to finish? You cannot change your answers after proceeding.",
+      confirmText: "Yes, Submit", 
+      cancelText: "No, Continue", 
+      isDanger: false, 
+      darkOverlay: themeRef.current === 'dark', 
       onConfirm: doSubmit
     });
   };
