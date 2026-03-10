@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { io } from 'socket.io-client';
 import { showToast } from '@/components/ui/Toast';
+import Skeleton from '@/components/ui/Skeleton'; // 🚀 Imported Skeleton component
 import './student-logs.css';
 
 export default function StudentExamLogs({ params }) {
@@ -18,33 +19,38 @@ export default function StudentExamLogs({ params }) {
   const [groupedAnswers, setGroupedAnswers] = useState({});
   const [activeProblemId, setActiveProblemId] = useState(null);
   const [activeLang, setActiveLang] = useState(null);
-  const [totalQuestions, setTotalQuestions] = useState(0); // 🚀 NEW: Total questions tracker
+  const [totalQuestions, setTotalQuestions] = useState(0); 
   
   const socketRef = useRef(null);
 
-  // 🚀 FIXED: Bulletproof IST formatter that handles both DB strings and Socket timestamps
+  // 🚀 FIXED: Math-free formatter. Treats input as exact UTC and renders it without ANY timezone offset math.
   const formatIST = (dateInput, formatType = 'time') => {
     if (!dateInput) return '--:--';
     
-    let date;
-    // If it's a string from the DB, strip the 'Z' and force it into IST
-    if (typeof dateInput === 'string' && dateInput.includes('T')) {
-      const cleanStr = dateInput.endsWith('Z') ? dateInput.slice(0, -1) : dateInput;
-      date = new Date(`${cleanStr}+05:30`);
+    let dateObj;
+    
+    // If it's a string from the DB (e.g. "2026-03-10T15:22:57Z" or "2026-03-10T15:22:57+05:30")
+    if (typeof dateInput === 'string') {
+        // Strip out ANY timezone indicators. We just want the raw digits.
+        const rawString = dateInput.includes('Z') ? dateInput.split('Z')[0] : dateInput.split('+')[0];
+        // Append a 'Z' to force Javascript to see this string as absolute UTC time.
+        dateObj = new Date(`${rawString}Z`); 
     } else {
-      // If it's a timestamp number (like Date.now() from Socket), parse it normally
-      date = new Date(dateInput);
+        // If it's a timestamp number (like Date.now() from Socket), parse it normally.
+        dateObj = new Date(dateInput);
     }
     
-    if (isNaN(date.getTime())) return '--:--';
+    if (isNaN(dateObj.getTime())) return '--:--';
 
+    // Output strictly in UTC. Because we faked the input to be UTC, it will print the exact numbers 
+    // stored in the database without adding your local India +05:30 offset to it.
     if (formatType === 'time') {
-      return date.toLocaleTimeString('en-US', { timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit' });
+      return dateObj.toLocaleTimeString('en-US', { timeZone: 'UTC', hour: '2-digit', minute: '2-digit' });
     }
     if (formatType === 'full') {
-      return date.toLocaleString('en-US', { timeZone: 'Asia/Kolkata', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit' });
+      return dateObj.toLocaleString('en-US', { timeZone: 'UTC', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit' });
     }
-    return date.toLocaleDateString('en-US', { timeZone: 'Asia/Kolkata' });
+    return dateObj.toLocaleDateString('en-US', { timeZone: 'UTC' });
   };
 
   useEffect(() => {
@@ -77,7 +83,6 @@ export default function StudentExamLogs({ params }) {
         const data = await res.json();
         setSession(data.session);
         
-        // 🚀 Calculate total questions from session relations, fallback to fetched lengths
         const totalProbCount = data.totalProblems || data.session?.contest?._count?.problems || data.answers?.length || 0;
         setTotalQuestions(totalProbCount);
 
@@ -118,7 +123,7 @@ export default function StudentExamLogs({ params }) {
                 ...updated[update.problemId].attempts[update.language],
                 code: update.code,
                 status: update.status,
-                updatedAt: Date.now() // 🚀 Use numerical timestamp to bypass string parsing conflicts
+                updatedAt: Date.now() 
               };
               return updated;
             });
@@ -134,7 +139,6 @@ export default function StudentExamLogs({ params }) {
     return () => { if (socketRef.current) socketRef.current.disconnect(); };
   }, [examId, userId, router]);
 
-  // Handle Problem Selection
   const handleProblemClick = (pid) => {
     setActiveProblemId(pid);
     const langs = Object.keys(groupedAnswers[pid].attempts);
@@ -143,19 +147,37 @@ export default function StudentExamLogs({ params }) {
     }
   };
 
-  // --- RENDER SKELETON LOADER ---
+  // --- 🚀 IMPLEMENTED REAL SKELETON COMPONENT ---
   if (loading) {
     return (
       <div className="logs-container">
-        <div className="skel-wrap"><div className="skel skel-line" style={{ width: '150px' }}></div></div>
-        <div className="meta-card skel-wrap" style={{ display: 'flex', gap: '20px' }}>
-           <div className="skel skel-circle"></div>
-           <div style={{ flex: 1 }}><div className="skel skel-line" style={{ width: '200px', marginBottom: '8px' }}></div><div className="skel skel-line" style={{ width: '150px' }}></div></div>
+        <div style={{ marginBottom: '16px' }}>
+          <Skeleton width="150px" height="20px" borderRadius="4px" />
         </div>
-        <div className="logs-grid skel-wrap">
-           <div className="pane sidebar-pane"><div className="skel skel-block" style={{ height: '100%' }}></div></div>
-           <div className="pane code-pane"><div className="skel skel-block" style={{ height: '100%' }}></div></div>
-           <div className="pane timeline-pane"><div className="skel skel-block" style={{ height: '100%' }}></div></div>
+        <div className="meta-card" style={{ display: 'flex', gap: '20px', alignItems: 'center' }}>
+           <Skeleton circle width="60px" height="60px" />
+           <div style={{ flex: 1 }}>
+              <Skeleton width="200px" height="24px" className="mb-2" />
+              <Skeleton width="150px" height="16px" />
+           </div>
+           <Skeleton width="100px" height="32px" borderRadius="20px" />
+        </div>
+        <div className="logs-grid">
+           <div className="pane sidebar-pane" style={{ padding: '16px' }}>
+              <Skeleton width="100%" height="60px" borderRadius="8px" className="mb-3" />
+              <Skeleton width="100%" height="60px" borderRadius="8px" className="mb-3" />
+              <Skeleton width="100%" height="60px" borderRadius="8px" />
+           </div>
+           <div className="pane code-pane" style={{ padding: '16px' }}>
+              <Skeleton width="200px" height="24px" className="mb-4" />
+              <Skeleton width="100%" height="400px" borderRadius="8px" />
+           </div>
+           <div className="pane timeline-pane" style={{ padding: '16px' }}>
+              <Skeleton width="150px" height="20px" className="mb-4" />
+              <Skeleton width="100%" height="30px" className="mb-2" />
+              <Skeleton width="100%" height="30px" className="mb-2" />
+              <Skeleton width="100%" height="30px" />
+           </div>
         </div>
       </div>
     );
@@ -166,7 +188,6 @@ export default function StudentExamLogs({ params }) {
   const activeAttempt = activeProblem ? activeProblem.attempts[activeLang] : null;
   const problemsList = Object.values(groupedAnswers);
 
-  // 🚀 Compute Accepted Questions
   const acceptedCount = problemsList.filter(prob => 
     Object.values(prob.attempts).some(a => a.status === 'Accepted')
   ).length;
@@ -213,7 +234,6 @@ export default function StudentExamLogs({ params }) {
                <div className="empty-state">No progress recorded yet.</div>
             ) : (
               problemsList.map(prob => {
-                // Determine overall status for this problem
                 const attempts = Object.values(prob.attempts);
                 const hasAccepted = attempts.some(a => a.status === 'Accepted');
                 const latestAttempt = attempts.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt))[0];
@@ -270,7 +290,6 @@ export default function StudentExamLogs({ params }) {
                          <span className={`status-dot status-text-${activeAttempt.status.toLowerCase().replace(/\s+/g, '-')}`}>●</span>
                          <span className="file-name">Current Status: {activeAttempt.status}</span>
                        </div>
-                       {/* 🚀 Date object/string perfectly handled here */}
                        <span className="last-saved">Saved: {formatIST(activeAttempt.updatedAt, 'full')}</span>
                     </div>
                   )}
@@ -296,7 +315,6 @@ export default function StudentExamLogs({ params }) {
           <div className="metrics-box">
              <div className="pane-header"><h3>Session Metrics</h3></div>
              
-             {/* 🚀 NEW: Problems Solved UI */}
              <div className="metric-row">
                 <span className="metric-label">Problems Solved</span>
                 <span className="metric-value" style={{ color: '#10b981', fontWeight: 600 }}>
