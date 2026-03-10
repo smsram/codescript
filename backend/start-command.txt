@@ -1,0 +1,4 @@
+pm2 start src/server.js --name "codescript-api"
+
+pm2 restart codescript-api
+pm2 logs codescript-api

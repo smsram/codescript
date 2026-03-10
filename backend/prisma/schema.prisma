@@ -1,0 +1,122 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum Role {
+  STUDENT
+  WRITER
+  ADMIN
+}
+
+model User {
+  id              String           @id @default(uuid())
+  email           String           @unique
+  password        String
+  name            String
+  role            Role             @default(STUDENT)
+  status          String           @default("ACTIVE")
+  contestsCreated Contest[]        @relation("ContestCreator")
+  sessions        ContestSession[] 
+  createdAt       DateTime         @default(now())
+}
+
+model Contest {
+  id           String           @id @default(uuid())
+  title        String           @default("Untitled Contest")
+  description  String?          @db.Text
+  startTime    DateTime? 
+  endTime      DateTime? 
+  isPrivate    Boolean          @default(false)
+  joinCode     String?          @unique
+  strikes      Int              @default(3)
+  strictMode   Boolean          @default(true)
+  allowedLangs String           @default("Python,Python 3,Java,C,C++,C#") 
+  status       String           @default("DRAFT") 
+  
+  sheetId      String?
+  sheetUrl     String?
+
+  creatorId    String
+  creator      User             @relation("ContestCreator", fields: [creatorId], references: [id])
+  
+  // 🚀 FIXED: Now a direct One-to-Many relation
+  problems     Problem[] 
+  
+  sessions     ContestSession[] 
+  createdAt    DateTime         @default(now())
+}
+
+// 1. The main tracking row for the student's exam
+model ContestSession {
+  id          String          @id @default(uuid())
+  userId      String
+  user        User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  contestId   String
+  contest     Contest         @relation(fields: [contestId], references: [id], onDelete: Cascade)
+  strikes     Int             @default(0)
+  status      String          @default("IN_PROGRESS") // "IN_PROGRESS", "SUBMITTED", "KICKED"
+  joinedAt    DateTime        @default(now())
+  completedAt DateTime?
+
+  // Replaces the JSON blob. Links to the new answers table.
+  answers     SessionAnswer[] 
+
+  @@unique([userId, contestId]) // Single session per student per exam
+}
+
+// 2. NEW TABLE: The single-row tracker for problem codes
+model SessionAnswer {
+  id               String         @id @default(uuid())
+  
+  contestSessionId String
+  contestSession   ContestSession @relation(fields: [contestSessionId], references: [id], onDelete: Cascade)
+  
+  problemId        String
+  problem          Problem        @relation(fields: [problemId], references: [id], onDelete: Cascade)
+  
+  language         String
+  code             String         @db.Text
+  status           String         @default("DRAFT") // "DRAFT", "Accepted", "Failed"
+  
+  updatedAt        DateTime       @updatedAt
+
+  // 🚀 CRITICAL: This ensures there is ONLY ONE row for this specific language on this specific problem.
+  // If they type Python, it updates the Python row. If they switch to C++, it creates/updates the C++ row.
+  // No duplicate rows will ever be created.
+  @@unique([contestSessionId, problemId, language])
+}
+
+model Problem {
+  id             String          @id @default(uuid())
+  title          String
+  description    String          @db.Text
+  diff           String      
+  tag            String?
+  codeStubs      Json?
+  solution       Json?
+  driverCode     Json?           
+  
+  order          Int             @default(0) // 🚀 NEW: Stores the drag-and-drop sequence
+  
+  contestId      String?
+  contest        Contest?        @relation(fields: [contestId], references: [id], onDelete: Cascade)
+  
+  testCases      TestCase[]
+  sessionAnswers SessionAnswer[] 
+  createdAt      DateTime        @default(now())
+}
+
+model TestCase {
+  id             String   @id @default(uuid())
+  input          String   @db.Text
+  expectedOutput String   @db.Text
+  isHidden       Boolean  @default(false)
+  problemId      String
+  problem        Problem  @relation(fields: [problemId], references: [id], onDelete: Cascade)
+}

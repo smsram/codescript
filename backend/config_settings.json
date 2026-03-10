@@ -1,0 +1,5 @@
+{
+  "maxMem": 256,
+  "maxCpu": 0.5,
+  "globalTle": 5
+}
