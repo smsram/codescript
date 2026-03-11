@@ -98,12 +98,12 @@ export default function ExamSubmissionsPage({ params }) {
       <header className="subs-header">
         <div className="subs-header-gradient"></div>
         <div className="header-content">
-          <div className="logo-group">
-            <div className="logo-icon">
-              <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>terminal</span>
-            </div>
-            <span className="logo-text">CodeScript</span>
-          </div>
+          <div className="logo-group" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+  <div className="logo-icon" style={{ width: '24px', height: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+    <img src="/CodeScriptLogo.png" alt="Logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+  </div>
+  <span className="logo-text" style={{ fontWeight: 600 }}>CodeScript</span>
+</div>
           
           <div className="header-right">
             <Link href="/dashboard" className="btn-dashboard">

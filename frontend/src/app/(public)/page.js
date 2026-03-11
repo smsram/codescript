@@ -34,7 +34,7 @@ export default function Home() {
             <div className="sd-divider" style={{ height: '20px', width: '1px', background: 'var(--border-light)', margin: '0 4px' }}></div>
             
             <Link href="/login" className="btn btn-ghost btn-login">Log In</Link>
-            <Link href="/signup" className="btn btn-primary">Sign Up</Link>
+            <Link href="/register" className="btn btn-primary">Register</Link>
           </div>
         </div>
       </nav>
@@ -201,7 +201,7 @@ export default function Home() {
                 <h2>Ready for your next challenge?</h2>
                 <p>Join thousands of GGU students mastering their craft. Start solving real-world problems today.</p>
               </div>
-              <Link href="/signup" className="btn btn-large btn-white">Create Student Account</Link>
+              <Link href="/register" className="btn btn-large btn-white">Create Student Account</Link>
             </div>
 
             <div className="footer-bottom">

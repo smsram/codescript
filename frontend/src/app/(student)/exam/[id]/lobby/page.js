@@ -90,11 +90,17 @@ export default function ExamLobbyPage() {
         <div className="lobby-header-gradient"></div>
         <div className="lobby-header-content">
           <div className="lobby-logo" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <div className="logo-box" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>terminal</span>
-            </div>
-            <span className="logo-text" style={{ fontWeight: 700, fontSize: '1.25rem' }}>CodeScript</span>
-          </div>
+  <div className="logo-box" style={{ 
+    width: '32px', 
+    height: '32px', 
+    display: 'flex', 
+    alignItems: 'center', 
+    justifyContent: 'center' 
+  }}>
+    <img src="/CodeScriptLogo.png" alt="Logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+  </div>
+  <span className="logo-text" style={{ fontWeight: 700, fontSize: '1.25rem' }}>CodeScript</span>
+</div>
 
           <div className="lobby-user-actions" style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
             <button 

@@ -156,12 +156,33 @@ export default function StudentDashboard() {
         <div className="sd-header-gradient"></div>
         <div className="sd-header-content">
           
-          <div className="sd-logo-group">
-            <div className="sd-logo-icon">
-              <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>terminal</span>
-            </div>
-            <span className="sd-logo-text">CodeScript</span>
-          </div>
+          <div className="sd-logo-group" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+  <div className="sd-logo-icon" style={{ 
+    width: '32px', 
+    height: '32px', 
+    display: 'flex', 
+    alignItems: 'center', 
+    justifyContent: 'center',
+    overflow: 'hidden'
+  }}>
+    <img 
+      src="/CodeScriptLogo.png" 
+      alt="CodeScript Logo" 
+      style={{ 
+        width: '100%', 
+        height: '100%', 
+        objectFit: 'contain' 
+      }} 
+    />
+  </div>
+  <span className="sd-logo-text" style={{ 
+    fontWeight: '600', 
+    fontSize: '18px', 
+    letterSpacing: '-0.5px' 
+  }}>
+    CodeScript
+  </span>
+</div>
 
           <div className="sd-user-actions">
             {/* 🚀 ADDED: Theme Toggle Button */}

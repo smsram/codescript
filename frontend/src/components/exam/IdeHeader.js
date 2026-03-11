@@ -10,10 +10,38 @@ export default function IdeHeader({ loading, contest, timeLeft, formatTime, stri
       <div className="ide-header-gradient"></div>
       
       <div className="header-left">
-        <div className="logo-group">
-          <div className="logo-icon"><span className="material-symbols-outlined" style={{ fontSize: '18px' }}>terminal</span></div>
-          <span className="logo-text">CodeScript</span>
-        </div>
+        <div className="logo-group" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+  <div 
+    className="logo-icon" 
+    style={{ 
+      width: '24px', 
+      height: '24px', 
+      display: 'flex', 
+      alignItems: 'center', 
+      justifyContent: 'center' 
+    }}
+  >
+    <img 
+      src="/CodeScriptLogo.png" 
+      alt="CodeScript Logo" 
+      style={{ 
+        width: '100%', 
+        height: '100%', 
+        objectFit: 'contain' 
+      }} 
+    />
+  </div>
+  <span 
+    className="logo-text" 
+    style={{ 
+      fontWeight: '600', 
+      fontSize: '18px', 
+      color: 'var(--text-main)' 
+    }}
+  >
+    CodeScript
+  </span>
+</div>
         <div className="header-divider"></div>
         {loading ? (
           <Skeleton width="200px" height="24px" />
