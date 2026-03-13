@@ -8,17 +8,22 @@ export default function DescriptionEditor({ value, onChange }) {
   const textareaRef = useRef(null);
   const [isPreview, setIsPreview] = useState(false);
   
+  // Image Modal States
   const [showImageModal, setShowImageModal] = useState(false);
   const [imgUrl, setImgUrl] = useState("");
   const [imgAlt, setImgAlt] = useState("");
   const [imgPublicId, setImgPublicId] = useState(""); 
   const [imgBorderRadius, setImgBorderRadius] = useState("8px"); 
+  const [imgWidth, setImgWidth] = useState("auto"); // 🚀 Added Width
+  const [imgHeight, setImgHeight] = useState("auto"); // 🚀 Added Height
   const [uploadingImg, setUploadingImg] = useState(false);
   const [deletingImg, setDeletingImg] = useState(false);
 
+  // History States
   const [history, setHistory] = useState([value || ""]);
   const [historyIndex, setHistoryIndex] = useState(0);
 
+  // Dropdown States
   const [headingVal, setHeadingVal] = useState('H');
   const [fontVal, setFontVal] = useState('F');
   const [sizeVal, setSizeVal] = useState('S');
@@ -42,13 +47,18 @@ export default function DescriptionEditor({ value, onChange }) {
     { label: '24px', value: '24px' }, { label: '32px', value: '32px' }
   ];
 
-  const updateValue = (newValue, moveCursorTo = null) => {
-    onChange(newValue);
+  // 🚀 FIXED: Reliable history tracking without buggy useEffect loops
+  const saveToHistory = (newValue) => {
     const newHistory = history.slice(0, historyIndex + 1);
     newHistory.push(newValue);
     if (newHistory.length > 50) newHistory.shift();
     setHistory(newHistory);
     setHistoryIndex(newHistory.length - 1);
+  };
+
+  const updateValue = (newValue, moveCursorTo = null) => {
+    onChange(newValue);
+    saveToHistory(newValue);
 
     if (moveCursorTo !== null && textareaRef.current) {
       setTimeout(() => {
@@ -61,29 +71,34 @@ export default function DescriptionEditor({ value, onChange }) {
   const handleUndo = () => { if (historyIndex > 0) { setHistoryIndex(historyIndex - 1); onChange(history[historyIndex - 1]); } };
   const handleRedo = () => { if (historyIndex < history.length - 1) { setHistoryIndex(historyIndex + 1); onChange(history[historyIndex + 1]); } };
 
+  // 🚀 FIXED: Alignment logic 
   const applyAlignment = (alignment) => {
     const textarea = textareaRef.current;
     if (!textarea) return;
     const start = textarea.selectionStart;
     const end = textarea.selectionEnd;
-    let selectedText = value.substring(start, end) || "Your content here";
+    let selectedText = value.substring(start, end) || "Aligned Content";
     
     selectedText = selectedText.replace(/<div align="[^"]+">\s*/g, '').replace(/\s*<\/div>/g, '');
     const wrapper = `\n<div align="${alignment}">\n\n${selectedText}\n\n</div>\n`;
     updateValue(value.substring(0, start) + wrapper + value.substring(end), start + wrapper.length - 9);
   };
 
+  // 🚀 FIXED: Bulletproof Heading toggler
   const applyHeading = (level) => {
     const textarea = textareaRef.current;
     if (!textarea) return;
     const start = textarea.selectionStart;
     const lineStart = value.lastIndexOf('\n', start - 1) + 1;
-    const lineEndIndex = value.indexOf('\n', start);
-    const lineEnd = lineEndIndex === -1 ? value.length : lineEndIndex;
+    let lineEndIndex = value.indexOf('\n', start);
+    if (lineEndIndex === -1) lineEndIndex = value.length;
     
-    let currentLine = value.substring(lineStart, lineEnd).replace(/^#+\s/, ''); 
+    let currentLine = value.substring(lineStart, lineEndIndex);
+    currentLine = currentLine.replace(/^#{1,6}\s*/, ''); // Strip existing heading
+    
     const prefix = level > 0 ? '#'.repeat(level) + ' ' : '';
-    updateValue(value.substring(0, lineStart) + prefix + currentLine + value.substring(lineEnd), start + prefix.length);
+    const newText = value.substring(0, lineStart) + prefix + currentLine + value.substring(lineEndIndex);
+    updateValue(newText, start + prefix.length);
   };
 
   const applySpanStyle = (property, val) => {
@@ -93,13 +108,14 @@ export default function DescriptionEditor({ value, onChange }) {
     const end = textarea.selectionEnd;
     const selectedText = value.substring(start, end);
     
-    if (!selectedText) return alert("Please select text first to apply formatting.");
+    if (!selectedText) return showToast("Please select text first to apply formatting.", "warning");
     if (val === 'inherit') return; 
 
     const wrapper = `<span style="${property}: ${val};">${selectedText}</span>`;
     updateValue(value.substring(0, start) + wrapper + value.substring(end), start + wrapper.length);
   };
 
+  // 🚀 FIXED: Perfected the block & inline formatters (No more cursor jumps)
   const applyFormat = (syntaxPrefix, syntaxSuffix = syntaxPrefix, isBlock = false) => {
     const textarea = textareaRef.current;
     if (!textarea) return;
@@ -109,21 +125,22 @@ export default function DescriptionEditor({ value, onChange }) {
     let newText = '', newCursorPos = start;
 
     if (isBlock) {
-      const lineStart = value.lastIndexOf('\n', start - 1) + 1;
       if (syntaxPrefix === 'bullet') {
-        newText = value.substring(0, lineStart) + '- ' + selectedText + value.substring(end);
-        newCursorPos = start + 2;
+        const lines = selectedText ? selectedText.split('\n') : ['List item'];
+        const bulleted = lines.map(line => `- ${line}`).join('\n');
+        newText = value.substring(0, start) + bulleted + value.substring(end);
+        newCursorPos = start + bulleted.length;
       } else if (syntaxPrefix === 'codeblock') {
-        newText = value.substring(0, start) + '\n```\n' + selectedText + '\n```\n' + value.substring(end);
-        newCursorPos = start + 5;
+        newText = value.substring(0, start) + '\n```text\n' + (selectedText || 'code here') + '\n```\n' + value.substring(end);
+        newCursorPos = start + 9 + (selectedText.length || 9);
       }
     } else {
       if (syntaxPrefix === '[Link](') {
         newText = value.substring(0, start) + `[${selectedText || 'Link text'}](https://)` + value.substring(end);
-        newCursorPos = start + (selectedText ? selectedText.length + 3 : 11);
+        newCursorPos = start + (selectedText ? selectedText.length + 11 : 11);
       } else {
-        newText = value.substring(0, start) + syntaxPrefix + selectedText + syntaxSuffix + value.substring(end);
-        newCursorPos = start + syntaxPrefix.length + selectedText.length;
+        newText = value.substring(0, start) + syntaxPrefix + (selectedText || 'text') + syntaxSuffix + value.substring(end);
+        newCursorPos = start + syntaxPrefix.length + (selectedText.length || 4);
       }
     }
     updateValue(newText, newCursorPos);
@@ -133,9 +150,7 @@ export default function DescriptionEditor({ value, onChange }) {
     const file = e.target.files[0];
     if (!file) return;
     
-    if (file.size > 5 * 1024 * 1024) {
-        return showToast("Image is too large. Max size is 5MB.", "error");
-    }
+    if (file.size > 5 * 1024 * 1024) return showToast("Image is too large. Max size is 5MB.", "error");
     
     const reader = new FileReader();
     reader.onloadend = async () => {
@@ -164,9 +179,7 @@ export default function DescriptionEditor({ value, onChange }) {
   };
 
   const handleRemoveImageFromModal = async () => {
-    if (!imgPublicId) {
-        setImgUrl(""); setImgAlt(""); setImgPublicId(""); return;
-    }
+    if (!imgPublicId) { setImgUrl(""); setImgAlt(""); setImgPublicId(""); return; }
     
     setDeletingImg(true);
     try {
@@ -177,21 +190,22 @@ export default function DescriptionEditor({ value, onChange }) {
             body: JSON.stringify({ public_id: imgPublicId })
         });
         setImgUrl(""); setImgAlt(""); setImgPublicId("");
-        showToast("Image removed from Cloudinary.", "success");
+        showToast("Image removed from cloud.", "success");
     } catch (e) {
-        showToast("Failed to delete image from cloud.", "error");
+        showToast("Failed to delete image.", "error");
     } finally {
         setDeletingImg(false);
     }
   };
 
+  // 🚀 FIXED: Injects Width and Height securely into the markdown string
   const handleInsertImage = () => {
     if (!imgUrl) return;
     const textarea = textareaRef.current;
     const start = textarea ? textarea.selectionStart : value.length;
     
     const pubIdAttr = imgPublicId ? `data-public-id="${imgPublicId}"` : '';
-    const imgMarkdown = `\n<img src="${imgUrl}" alt="${imgAlt || 'image'}" style="border-radius: ${imgBorderRadius}; max-width: 100%;" ${pubIdAttr} />\n`;
+    const imgMarkdown = `\n<img src="${imgUrl}" alt="${imgAlt || 'image'}" width="${imgWidth}" height="${imgHeight}" style="border-radius: ${imgBorderRadius}; max-width: 100%;" ${pubIdAttr} />\n`;
     
     updateValue(value.substring(0, start) + imgMarkdown + value.substring(start), start + imgMarkdown.length);
     closeImageModal();
@@ -224,22 +238,20 @@ export default function DescriptionEditor({ value, onChange }) {
             showToast("Failed to delete from Cloudinary.", "error");
         }
     }
-
     updateValue(value.substring(0, start) + value.substring(end), start);
   };
 
   const closeImageModal = () => {
     setShowImageModal(false);
-    setImgUrl(""); setImgAlt(""); setImgPublicId(""); setImgBorderRadius("8px");
+    setImgUrl(""); setImgAlt(""); setImgPublicId(""); 
+    setImgBorderRadius("8px"); setImgWidth("auto"); setImgHeight("auto");
   };
 
-  // 🚀 FIXED: Allow the Tab key to insert a \t space instead of jumping to the next input field!
   const handleKeyDown = (e) => {
     if (e.key === 'Tab') {
       e.preventDefault();
       applyFormat('\t', '', false);
     }
-
     if (e.ctrlKey || e.metaKey) {
       if (e.key.toLowerCase() === 'z') { e.preventDefault(); handleUndo(); }
       else if (e.key.toLowerCase() === 'y') { e.preventDefault(); handleRedo(); }
@@ -248,15 +260,11 @@ export default function DescriptionEditor({ value, onChange }) {
     }
   };
 
-  useEffect(() => {
-    const timer = setTimeout(() => { if (value !== history[historyIndex]) updateValue(value); }, 1000);
-    return () => clearTimeout(timer);
-  }, [value]);
-
   return (
     <div className="pb-panel relative" style={{ display: 'flex', flexDirection: 'column' }}>
       
-      <div className="pb-panel-header" style={{ flexWrap: 'wrap', gap: '8px' }}>
+      {/* 🚀 Disabled Toolbar entirely when Preview Mode is active to prevent crashes */}
+      <div className="pb-panel-header" style={{ flexWrap: 'wrap', gap: '8px', pointerEvents: isPreview ? 'none' : 'auto', opacity: isPreview ? 0.6 : 1 }}>
         
         <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
           <button className="btn-format" title="Undo (Ctrl+Z)" onClick={handleUndo} disabled={historyIndex === 0}>
@@ -310,7 +318,8 @@ export default function DescriptionEditor({ value, onChange }) {
 
         <div style={{ flex: 1 }}></div>
 
-        <button className={`btn-format ${isPreview ? 'active-preview' : ''}`} title="Toggle Preview" onClick={() => setIsPreview(!isPreview)} style={{ border: '1px solid #334155', borderRadius: '6px', padding: '4px 12px', color: isPreview ? 'var(--primary)' : '#94a3b8' }}>
+        {/* 🚀 Reactivated pointer events for Preview Toggle so you can actually turn it off */}
+        <button className={`btn-format ${isPreview ? 'active-preview' : ''}`} title="Toggle Preview" onClick={() => setIsPreview(!isPreview)} style={{ border: '1px solid #334155', borderRadius: '6px', padding: '4px 12px', color: isPreview ? 'var(--primary)' : '#94a3b8', pointerEvents: 'auto' }}>
             <span className="material-symbols-outlined" style={{ fontSize: '18px', marginRight: '6px' }}>{isPreview ? 'visibility_off' : 'visibility'}</span>
             {isPreview ? 'Edit Mode' : 'Preview'}
         </button>
@@ -324,12 +333,17 @@ export default function DescriptionEditor({ value, onChange }) {
           ref={textareaRef}
           className="md-editor"
           value={value}
-          onChange={(e) => onChange(e.target.value)}
-          onKeyDown={handleKeyDown} // 🚀 Tab key now works!
+          onChange={(e) => {
+            onChange(e.target.value);
+            // Push history periodically if they type huge blocks manually
+            if (e.target.value.length % 20 === 0) saveToHistory(e.target.value); 
+          }}
+          onKeyDown={handleKeyDown} 
           placeholder="Write your problem description here using Markdown... Select an image's HTML code and click the red image icon to permanently delete it from the server."
         />
       )}
 
+      {/* 🚀 UPGRADED IMAGE MODAL WITH WIDTH & HEIGHT */}
       {showImageModal && (
         <>
           <div className="modal-backdrop" onClick={closeImageModal}></div>
@@ -369,8 +383,21 @@ export default function DescriptionEditor({ value, onChange }) {
                 </div>
             </div>
 
-            <label style={{ fontSize: '12px', color: '#94a3b8', marginBottom: '4px', marginTop: '12px', display: 'block' }}>Alt Text</label>
-            <input type="text" placeholder="Diagram showing..." value={imgAlt} onChange={(e) => setImgAlt(e.target.value)} className="img-modal-input" />
+            {/* 🚀 NEW WIDTH AND HEIGHT ROW */}
+            <div style={{ display: 'flex', gap: '12px', marginTop: '12px' }}>
+                <div style={{ flex: 1 }}>
+                    <label style={{ fontSize: '12px', color: '#94a3b8', marginBottom: '4px', display: 'block' }}>Width (px or %)</label>
+                    <input type="text" placeholder="auto" value={imgWidth} onChange={(e) => setImgWidth(e.target.value)} className="img-modal-input" />
+                </div>
+                <div style={{ flex: 1 }}>
+                    <label style={{ fontSize: '12px', color: '#94a3b8', marginBottom: '4px', display: 'block' }}>Height (px or %)</label>
+                    <input type="text" placeholder="auto" value={imgHeight} onChange={(e) => setImgHeight(e.target.value)} className="img-modal-input" />
+                </div>
+                <div style={{ flex: 2 }}>
+                    <label style={{ fontSize: '12px', color: '#94a3b8', marginBottom: '4px', display: 'block' }}>Alt Text</label>
+                    <input type="text" placeholder="Diagram showing..." value={imgAlt} onChange={(e) => setImgAlt(e.target.value)} className="img-modal-input" />
+                </div>
+            </div>
 
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '24px' }}>
               <button className="img-btn-cancel" onClick={closeImageModal}>Cancel</button>

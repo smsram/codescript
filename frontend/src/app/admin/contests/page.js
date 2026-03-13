@@ -8,6 +8,7 @@ import { MoreOptions, MoreOptionsItem } from '@/components/ui/MoreOptions';
 import { showToast } from '@/components/ui/Toast';
 import { confirmAlert } from '@/components/ui/AlertConfirm';
 import Skeleton from '@/components/ui/Skeleton';
+import Pagination from '@/components/ui/Pagination'; // 🚀 Imported Pagination Component
 import './contests.css';
 
 export default function ContestsPage() {
@@ -15,10 +16,14 @@ export default function ContestsPage() {
   const [contests, setContests] = useState([]);
   const [loading, setLoading] = useState(true);
   
-  // 🚀 Added search state
+  // Search & Filter State
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [tick, setTick] = useState(0);
+
+  // 🚀 Pagination State
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 8; // Adjust this if you want more/less items per page
 
   const fetchContests = async () => {
     setLoading(true);
@@ -38,10 +43,16 @@ export default function ContestsPage() {
 
   useEffect(() => { fetchContests(); }, []);
 
+  // Timer for live countdowns
   useEffect(() => {
     const timer = setInterval(() => setTick(t => t + 1), 1000);
     return () => clearInterval(timer);
   }, []);
+
+  // 🚀 Reset to page 1 whenever search or filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, statusFilter]);
 
   const handleDuplicate = async (id) => {
     showToast("Duplicating...", "info");
@@ -116,9 +127,9 @@ export default function ContestsPage() {
     if (now < start) return { status: "Scheduled", timeStr: `Starts in ${formatDiff(start - now)}` };
     if (now >= start && now <= end) return { status: "Live", timeStr: `Ends in ${formatDiff(end - now)}` };
     return { status: "Completed", timeStr: null };
-  }, []);
+  }, [tick]); // Ensure it recalculates on tick if needed
 
-  // 🚀 THE FILTERING LOGIC
+  // FILTERING LOGIC
   const filteredContests = useMemo(() => {
     return contests.filter((contest) => {
       // 1. Search Filter (Checks title and ID)
@@ -139,6 +150,12 @@ export default function ContestsPage() {
     });
   }, [contests, searchQuery, statusFilter, getStatusInfo]);
 
+  // 🚀 CALCULATE PAGINATED CONTESTS INSTANTLY
+  const paginatedContests = useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    return filteredContests.slice(startIndex, startIndex + itemsPerPage);
+  }, [filteredContests, currentPage]);
+
   return (
     <div className="contests-container">
       <div className="contests-header">
@@ -151,7 +168,6 @@ export default function ContestsPage() {
       <div className="contests-toolbar">
         <div className="toolbar-search">
           <span className="material-symbols-outlined search-icon">search</span>
-          {/* 🚀 Wired up the search input */}
           <input 
             type="text" 
             placeholder="Search by title or ID..." 
@@ -160,7 +176,6 @@ export default function ContestsPage() {
           />
         </div>
         <div className="toolbar-filters">
-          {/* 🚀 Expanded Dropdown options to match all statuses */}
           <Dropdown 
             prefix="Status: " value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}
             options={[
@@ -180,7 +195,7 @@ export default function ContestsPage() {
             <table style={{ width: '100%' }}>
               <thead><tr><th>Status</th><th>Contest Title</th><th style={{ textAlign: 'center' }}>Access</th><th style={{ textAlign: 'right' }}>Actions</th></tr></thead>
               <tbody>
-                {[...Array(5)].map((_, i) => (
+                {[...Array(itemsPerPage)].map((_, i) => (
                   <tr key={i}>
                     <td><Skeleton width="80px" height="26px" borderRadius="16px" /></td>
                     <td><div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}><Skeleton width="220px" height="18px" /><Skeleton width="140px" height="12px" /></div></td>
@@ -196,7 +211,6 @@ export default function ContestsPage() {
                 <tr><th>Status</th><th>Contest Title</th><th style={{ textAlign: 'center' }}>Access</th><th style={{ textAlign: 'right' }}>Actions</th></tr>
               </thead>
               <tbody>
-                {/* 🚀 Handle empty states securely */}
                 {filteredContests.length === 0 ? (
                   <tr>
                     <td colSpan="4" style={{ textAlign: 'center', padding: '3rem', color: '#64748b' }}>
@@ -205,8 +219,8 @@ export default function ContestsPage() {
                     </td>
                   </tr>
                 ) : (
-                  // 🚀 Map over the filtered array instead of the raw one
-                  filteredContests.map((contest) => {
+                  // 🚀 Map over paginatedContests instead of filteredContests
+                  paginatedContests.map((contest) => {
                     const { status, timeStr } = getStatusInfo(contest);
                     return (
                       <tr key={contest.id}>
@@ -260,6 +274,20 @@ export default function ContestsPage() {
           )}
         </div>
       </div>
+
+      {/* 🚀 Render Pagination Component */}
+      {!loading && filteredContests.length > 0 && (
+        <div style={{ marginTop: '1.5rem' }}>
+          <Pagination 
+            currentPage={currentPage} 
+            totalItems={filteredContests.length} 
+            itemsPerPage={itemsPerPage} 
+            onNext={() => setCurrentPage(p => p + 1)} 
+            onPrev={() => setCurrentPage(p => p - 1)} 
+          />
+        </div>
+      )}
+
       <style dangerouslySetInnerHTML={{ __html: `
         @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); } 70% { box-shadow: 0 0 0 6px rgba(239, 68, 68, 0); } 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); } }
         .pulse-dot { width: 8px; height: 8px; border-radius: 50%; background-color: currentColor; animation: pulse 1.5s infinite; }

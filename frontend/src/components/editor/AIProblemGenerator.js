@@ -16,9 +16,10 @@ export default function AIProblemGenerator({ allowedLangs, onApply }) {
     { label: 'Hard', value: 'Hard' }
   ];
 
+  // 🚀 UPDATED PROMPT: Enforces professional structure and code stub behavior
   const generateInternalPrompt = () => {
-    return `You are an expert competitive programming problem setter. Create a coding problem based on this request: "${promptText}".
-Difficulty: ${difficulty}.
+    return `You are an expert competitive programming problem setter. Create a professional coding problem based on this request: "${promptText}".
+Difficulty Level: ${difficulty}.
 Allowed Languages: ${(allowedLangs || ['Python 3', 'Java', 'C++']).join(', ')}.
 
 Return STRICTLY a valid JSON object matching this exact schema:
@@ -35,11 +36,16 @@ Return STRICTLY a valid JSON object matching this exact schema:
 }
 
 CRITICAL RULES:
-1. LANGUAGE KEYS: You MUST use exactly "Python 3" as the dictionary key for Python. NEVER use "Python" or "python3".
-2. DRIVER CODE LOGIC: The "driverCode" MUST NOT contain the actual solution or algorithm. Its ONLY job is to read input from standard input (stdin), instantiate/call the user's function/class (defined in codeStubs), and print the result to standard output (stdout).
-3. ESCAPING: Use single quotes for strings inside code. Double escape LaTeX backslashes (\\\\le).
-4. FORMATTING: Use \\n for EVERY newline and \\t for EVERY tab.
-5. EXAMPLES & BLOCKS: Put Input/Output examples and multi-line text inside triple backticks (e.g., \`\`\`text\\n...\\n\`\`\`). NEVER wrap individual lines of a block in single backticks.
+1. DESCRIPTION STRUCTURE: The description MUST follow the structure of top-tier competitive programming platforms. It must include:
+   - A clear, concise problem statement.
+   - Formal constraints (e.g., $1 \\le N \\le 10^5$).
+   - At least two well-explained Input/Output examples showing edge cases.
+2. CODE STUBS (STUDENT TEMPLATE): The "codeStubs" MUST NOT contain the final solution. It must be a starter template (e.g., a class with an empty method) that the student must complete. Include helpful comments like "// Write your code here".
+3. LANGUAGE KEYS: You MUST use exactly "Python 3" as the dictionary key for Python. NEVER use "Python" or "python3".
+4. DRIVER CODE LOGIC: The "driverCode" MUST NOT contain the actual solution or algorithm. Its ONLY job is to read input from standard input (stdin), instantiate/call the user's function/class (defined in codeStubs), and print the result to standard output (stdout).
+5. ESCAPING: Use single quotes for strings inside code. Double escape LaTeX backslashes (\\\\le).
+6. FORMATTING: Use \\n for EVERY newline and \\t for EVERY tab.
+7. EXAMPLES & BLOCKS: Put Input/Output examples and multi-line text inside triple backticks (e.g., \`\`\`text\\n...\\n\`\`\`). NEVER wrap individual lines of a block in single backticks.
 
 DESCRIPTION FORMATTING GUIDE (Use these exact options):
 * Headings: # (H1), ## (H2), ### (H3), #### (H4)
@@ -54,9 +60,6 @@ DESCRIPTION FORMATTING GUIDE (Use these exact options):
   };
 
   const processAndApplyData = (parsed) => {
-    // 🚀 We completely removed the destructive Python mapping. 
-    // The Workspace Component is now smart enough to resolve keys automatically.
-    
     if (parsed.testCases) {
       parsed.testCases = parsed.testCases.map((tc, i) => ({
         ...tc,

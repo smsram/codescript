@@ -71,6 +71,19 @@ export default function NewContestPage() {
     return () => window.removeEventListener('trigger-save-contest', executeSave);
   }, [router]);
 
+  // 🚀 Listen for Cancel trigger from Topbar
+  useEffect(() => {
+    const handleCancel = () => {
+      // Clear the temporary draft from session storage
+      sessionStorage.removeItem('newContestDraftData');
+      // Redirect back to the directory
+      router.push('/admin/contests');
+    };
+
+    window.addEventListener('trigger-cancel', handleCancel);
+    return () => window.removeEventListener('trigger-cancel', handleCancel);
+  }, [router]);
+
   return (
     <div className="builder-container">
       <div className="flex flex-col mb-8">

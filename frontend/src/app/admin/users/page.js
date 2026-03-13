@@ -7,6 +7,7 @@ import { MoreOptions, MoreOptionsItem } from '@/components/ui/MoreOptions';
 import Skeleton from '@/components/ui/Skeleton';
 import { showToast } from '@/components/ui/Toast';
 import { confirmAlert } from '@/components/ui/AlertConfirm';
+import Pagination from '@/components/ui/Pagination'; // 🚀 Imported new component
 import './users.css';
 
 export default function UsersPage() {
@@ -17,6 +18,10 @@ export default function UsersPage() {
   // Filtering & Search
   const [searchQuery, setSearchQuery] = useState("");
   const [roleFilter, setRoleFilter] = useState("all");
+
+  // 🚀 Pagination State
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 8;
 
   // Modal States
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -52,6 +57,9 @@ export default function UsersPage() {
 
   useEffect(() => { fetchUsers(); }, []);
 
+  // Reset to page 1 whenever a filter or search changes
+  useEffect(() => { setCurrentPage(1); }, [searchQuery, roleFilter]);
+
   const handleAddUser = async (e) => {
     e.preventDefault();
     if (!newUser.name || !newUser.email) return showToast("Name and Email required", "error");
@@ -61,10 +69,7 @@ export default function UsersPage() {
       const token = localStorage.getItem('token');
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/users`, {
         method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}` 
-        },
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify(newUser)
       });
       
@@ -91,10 +96,7 @@ export default function UsersPage() {
       const token = localStorage.getItem('token');
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/users/${roleModalUser.id}/role`, {
         method: 'PUT',
-        headers: { 
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}` 
-        },
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify({ role: newRole })
       });
       
@@ -128,10 +130,7 @@ export default function UsersPage() {
 
           const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/users/${user.id}/status`, {
             method: 'PUT',
-            headers: { 
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${token}` 
-            },
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
             body: JSON.stringify({ status: newStatus })
           });
           
@@ -151,6 +150,12 @@ export default function UsersPage() {
     return name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
   };
 
+  // 🚀 Text Truncation Helper
+  const truncateText = (text, maxLength = 50) => {
+    if (!text) return "";
+    return text.length > maxLength ? text.substring(0, maxLength) + "..." : text;
+  };
+
   const filteredUsers = users.filter(user => {
     const matchesSearch = 
       user.name?.toLowerCase().includes(searchQuery.toLowerCase()) || 
@@ -158,6 +163,9 @@ export default function UsersPage() {
     const matchesRole = roleFilter === 'all' || user.role === roleFilter;
     return matchesSearch && matchesRole;
   });
+
+  // 🚀 Calculate Paginated Users instantly
+  const paginatedUsers = filteredUsers.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
   return (
     <div className="users-container">
@@ -190,7 +198,7 @@ export default function UsersPage() {
       {/* USER GRID */}
       <div className="users-grid">
         {loading ? (
-          [...Array(8)].map((_, i) => (
+          [...Array(itemsPerPage)].map((_, i) => (
             <div className="user-card" key={i} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
               <div style={{ alignSelf: 'flex-end', marginBottom: '8px' }}>
                 <Skeleton width="24px" height="24px" borderRadius="4px" />
@@ -202,7 +210,7 @@ export default function UsersPage() {
             </div>
           ))
         ) : (
-          filteredUsers.map((user) => {
+          paginatedUsers.map((user) => {
             const isSuspended = user.status === 'SUSPENDED';
 
             return (
@@ -212,13 +220,10 @@ export default function UsersPage() {
                     <MoreOptionsItem icon="manage_accounts" onClick={() => { setRoleModalUser(user); setNewRole(user.role); }}>
                       Change Role
                     </MoreOptionsItem>
-                    
                     <MoreOptionsItem icon="history_edu" onClick={() => router.push(`/admin/users/${user.id}/history`)}>
                       View History
                     </MoreOptionsItem>
-                    
                     <div style={{ height: '1px', backgroundColor: '#334155', margin: '4px 0' }}></div>
-                    
                     <MoreOptionsItem icon={isSuspended ? "check_circle" : "block"} danger={!isSuspended} onClick={() => handleToggleSuspend(user)}>
                       {isSuspended ? "Reactivate Account" : "Suspend Account"}
                     </MoreOptionsItem>
@@ -229,11 +234,15 @@ export default function UsersPage() {
                   <span>{getInitials(user.name)}</span>
                 </div>
                 
-                <h3 className="user-name" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  {user.name} 
-                  {isSuspended && <span className="material-symbols-outlined" style={{ color: '#ef4444', fontSize: '16px' }} title="Suspended">block</span>}
+                {/* 🚀 Applied truncation and styling */}
+                <h3 className="user-name" title={user.name}>
+                  {truncateText(user.name, 50)}
+                  {isSuspended && <span className="material-symbols-outlined" style={{ color: '#ef4444', fontSize: '16px', marginLeft: '6px' }} title="Suspended">block</span>}
                 </h3>
-                <p className="user-email">{user.email}</p>
+                
+                <p className="user-email" title={user.email}>
+                  {truncateText(user.email, 50)}
+                </p>
                 
                 <span className={`role-badge role-${user.role.toLowerCase()}`}>
                   {user.role.charAt(0) + user.role.slice(1).toLowerCase()}
@@ -249,6 +258,17 @@ export default function UsersPage() {
           <span className="material-symbols-outlined" style={{ fontSize: '48px', opacity: 0.5, marginBottom: '16px', display: 'block' }}>group_off</span>
           <p>No users match your filters.</p>
         </div>
+      )}
+
+      {/* 🚀 Render Pagination Component */}
+      {!loading && filteredUsers.length > 0 && (
+        <Pagination 
+          currentPage={currentPage} 
+          totalItems={filteredUsers.length} 
+          itemsPerPage={itemsPerPage} 
+          onNext={() => setCurrentPage(p => p + 1)} 
+          onPrev={() => setCurrentPage(p => p - 1)} 
+        />
       )}
 
       {/* ADD USER MODAL */}

@@ -560,13 +560,13 @@ export default function ContestDetailsPage({ params }) {
                           )}
                           
                           {student.status === 'IN_PROGRESS' && isLive && (
-                            <>
-                              <div style={{ height: '1px', backgroundColor: '#334155', margin: '4px 0' }}></div>
-                              <MoreOptionsItem icon="block" danger onClick={() => handleTerminateSession(student.userId, student.user.name)}>
-                                Terminate Session
-                              </MoreOptionsItem>
-                            </>
-                          )}
+  <div style={{ height: '1px', backgroundColor: '#334155', margin: '4px 0' }}></div>
+)}
+{student.status === 'IN_PROGRESS' && isLive && (
+  <MoreOptionsItem icon="block" danger onClick={() => handleTerminateSession(student.userId, student.user.name)}>
+    Terminate Session
+  </MoreOptionsItem>
+)}
                         </MoreOptions>
                       </div>
                     </td>

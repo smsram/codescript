@@ -180,3 +180,47 @@
 }
 .btn-page:hover:not(:disabled) { color: #fff; border-color: #64748b; }
 .btn-page:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.user-card {
+  background-color: var(--bg-surface, #1e293b);
+  border: 1px solid var(--border-light, #334155);
+  border-radius: 0.75rem;
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  position: relative;
+  transition: all 0.2s;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+  
+  /* 🚀 Force the card to respect its grid boundaries */
+  max-width: 100%;
+  overflow: hidden; 
+}
+
+.user-name { 
+  font-size: 1.125rem; 
+  font-weight: 600; 
+  color: #f8fafc;
+  
+  /* 🚀 Break words into next line if they are long */
+  width: 100%;
+  word-wrap: break-word;
+  word-break: break-all;
+  margin-bottom: 0.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.user-email { 
+  font-size: 0.875rem; 
+  color: #94a3b8; 
+  margin-bottom: 1rem;
+  
+  /* 🚀 Break words into next line if they are long */
+  width: 100%;
+  word-wrap: break-word;
+  word-break: break-all;
+}
