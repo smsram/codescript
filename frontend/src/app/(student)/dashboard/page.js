@@ -4,8 +4,8 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Skeleton from '@/components/ui/Skeleton';
 import { showToast } from '@/components/ui/Toast';
-import { confirmAlert } from '@/components/ui/AlertConfirm'; // 🚀 Added Alert Confirm
-import ThemeToggle from '@/components/ui/ThemeToggle'; // 🚀 Added Theme Toggle
+import { confirmAlert } from '@/components/ui/AlertConfirm'; 
+import ThemeToggle from '@/components/ui/ThemeToggle'; 
 import { MoreOptions, MoreOptionsItem } from '@/components/ui/MoreOptions';
 import './dashboard.css';
 
@@ -18,11 +18,17 @@ export default function StudentDashboard() {
   const [joinCode, setJoinCode] = useState('');
   const [joining, setJoining] = useState(false);
 
+  // Edit Profile States
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editName, setEditName] = useState('');
+  const [editPin, setEditPin] = useState(''); // 🚀 Added PIN state
+  const [savingProfile, setSavingProfile] = useState(false);
+
   // Live Timer State
   const [currentTime, setCurrentTime] = useState(Date.now());
 
   const [data, setData] = useState({
-    user: { name: '', studentId: '' },
+    user: { name: '', studentId: '', email: '', pin: '' },
     exams: [],
     history: [],
     stats: { totalSolved: 0, avgPassRate: "0%" }
@@ -41,6 +47,7 @@ export default function StudentDashboard() {
         
         const json = await res.json();
         setData(json);
+        setEditName(json.user.name);
       } catch (err) {
         showToast(err.message, "error");
       } finally {
@@ -66,12 +73,8 @@ export default function StudentDashboard() {
     if (!dateString) return "TBA";
     const realTime = getRealTime(dateString);
     return new Date(realTime).toLocaleString('en-US', { 
-      timeZone: 'Asia/Kolkata',
-      month: 'short', 
-      day: 'numeric', 
-      hour: 'numeric', 
-      minute: '2-digit',
-      hour12: true 
+      timeZone: 'Asia/Kolkata', month: 'short', day: 'numeric', 
+      hour: 'numeric', minute: '2-digit', hour12: true 
     }) + ' IST';
   };
 
@@ -95,7 +98,6 @@ export default function StudentDashboard() {
     return res.join(' ');
   };
 
-  // 🚀 FIXED: Using AlertConfirm component for graceful UI
   const handleLogout = () => {
     confirmAlert({
       title: "Logout",
@@ -107,6 +109,77 @@ export default function StudentDashboard() {
         localStorage.removeItem('token');
         sessionStorage.clear();
         router.replace('/login');
+      }
+    });
+  };
+
+  // 🚀 Profile Update
+  const handleUpdateProfile = async () => {
+    if (!editName.trim()) return showToast("Name cannot be empty", "error");
+    setSavingProfile(true);
+    try {
+      const token = localStorage.getItem('token');
+      
+      const payload = { name: editName };
+      // Only send PIN if they actually entered one and they don't already have one
+      if (!data.user.pin && editPin.trim()) {
+        payload.pin = editPin.trim();
+      }
+
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/users/profile`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify(payload)
+      });
+      
+      const responseData = await res.json();
+      if (!res.ok) throw new Error(responseData.error || "Failed to update profile");
+      
+      // Update local state to reflect changes instantly
+      setData(prev => ({ 
+        ...prev, 
+        user: { 
+          ...prev.user, 
+          name: responseData.user.name,
+          pin: responseData.user.pin
+        } 
+      }));
+      
+      showToast("Profile updated successfully!", "success");
+      setIsEditModalOpen(false);
+      setEditPin(''); // reset the pin field
+    } catch (err) {
+      showToast(err.message, "error");
+    } finally {
+      setSavingProfile(false);
+    }
+  };
+
+  // 🚀 Send Password Reset Link
+  const handlePasswordReset = async () => {
+    confirmAlert({
+      title: "Reset Password",
+      message: `A reset link will be sent to ${data.user.email}. Do you want to proceed?`,
+      confirmText: "Send Link",
+      cancelText: "Cancel",
+      isDanger: false,
+      onConfirm: async () => {
+        try {
+          const token = localStorage.getItem('token');
+          const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/users/reset-password-request`, {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
+          
+          if (!res.ok) {
+            const errorData = await res.json();
+            throw new Error(errorData.error || "Failed to send link");
+          }
+          
+          showToast("Password reset link sent to your email!", "success");
+        } catch (err) {
+          showToast(err.message, "error");
+        }
       }
     });
   };
@@ -152,42 +225,95 @@ export default function StudentDashboard() {
   return (
     <div className="student-dashboard-wrapper">
       
+      {/* 🚀 Beautiful Edit Profile Modal Overlay */}
+      {isEditModalOpen && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999 }}>
+          <div style={{ background: 'var(--sd-card)', padding: '28px', borderRadius: '16px', width: '90%', maxWidth: '420px', border: '1px solid var(--sd-border)', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)' }}>
+            
+            <h3 style={{ marginTop: 0, marginBottom: '20px', color: 'var(--sd-text-main)', fontSize: '1.25rem', fontWeight: '700' }}>Edit Profile</h3>
+            
+            <div style={{ marginBottom: '16px' }}>
+              <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.85rem', fontWeight: 600, color: 'var(--sd-text-muted)' }}>Full Name</label>
+              <input 
+                type="text" 
+                value={editName} 
+                onChange={(e) => setEditName(e.target.value)}
+                style={{ width: '100%', padding: '12px 14px', borderRadius: '8px', background: 'var(--sd-bg)', border: '1px solid var(--sd-border)', color: 'var(--sd-text-main)', outline: 'none', transition: 'border-color 0.2s' }}
+                onFocus={(e) => e.target.style.borderColor = 'var(--sd-primary)'}
+                onBlur={(e) => e.target.style.borderColor = 'var(--sd-border)'}
+              />
+            </div>
+
+            {/* 🚀 Dynamic PIN Field Logic */}
+            <div style={{ marginBottom: '28px' }}>
+              <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.85rem', fontWeight: 600, color: 'var(--sd-text-muted)' }}>PIN / Roll Number</label>
+              {data.user.pin ? (
+                /* Disabled Input if PIN exists */
+                <input 
+                  type="text" 
+                  value={data.user.pin} 
+                  disabled
+                  style={{ width: '100%', padding: '12px 14px', borderRadius: '8px', background: 'var(--sd-hover-bg)', border: '1px dashed var(--sd-border)', color: 'var(--sd-text-muted)', outline: 'none', cursor: 'not-allowed' }}
+                />
+              ) : (
+                /* Editable Input with Warning if PIN does not exist */
+                <>
+                  <input 
+                    type="text" 
+                    value={editPin} 
+                    onChange={(e) => setEditPin(e.target.value)}
+                    placeholder="e.g. 21B91A05A3"
+                    style={{ width: '100%', padding: '12px 14px', borderRadius: '8px', background: 'var(--sd-bg)', border: '1px solid var(--sd-border)', color: 'var(--sd-text-main)', outline: 'none', transition: 'border-color 0.2s' }}
+                    onFocus={(e) => e.target.style.borderColor = 'var(--sd-primary)'}
+                    onBlur={(e) => e.target.style.borderColor = 'var(--sd-border)'}
+                  />
+                  <p style={{ fontSize: '0.75rem', color: '#ef4444', marginTop: '8px', display: 'flex', alignItems: 'center', gap: '4px', fontWeight: 500 }}>
+                    <span className="material-symbols-outlined" style={{fontSize: '14px'}}>info</span>
+                    Once saved, your PIN cannot be changed.
+                  </p>
+                </>
+              )}
+            </div>
+
+            <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+              <button 
+                onClick={() => setIsEditModalOpen(false)} 
+                style={{ padding: '10px 20px', background: 'transparent', border: '1px solid var(--sd-border)', color: 'var(--sd-text-main)', borderRadius: '8px', cursor: 'pointer', fontWeight: 600, transition: 'all 0.2s' }} 
+                onMouseEnter={(e)=>e.target.style.background='var(--sd-hover-bg)'} 
+                onMouseLeave={(e)=>e.target.style.background='transparent'}
+              >
+                Cancel
+              </button>
+              
+              <button 
+                onClick={handleUpdateProfile} 
+                disabled={savingProfile} 
+                style={{ padding: '10px 20px', background: 'var(--sd-primary)', border: 'none', color: '#fff', borderRadius: '8px', cursor: savingProfile ? 'wait' : 'pointer', fontWeight: 600, transition: 'background 0.2s', boxShadow: '0 4px 10px rgba(7, 178, 213, 0.2)' }} 
+                onMouseEnter={(e)=>e.target.style.background='var(--sd-primary-hover)'} 
+                onMouseLeave={(e)=>e.target.style.background='var(--sd-primary)'}
+              >
+                {savingProfile ? 'Saving...' : 'Save Changes'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <header className="sd-header">
         <div className="sd-header-gradient"></div>
         <div className="sd-header-content">
           
           <div className="sd-logo-group" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-  <div className="sd-logo-icon" style={{ 
-    width: '32px', 
-    height: '32px', 
-    display: 'flex', 
-    alignItems: 'center', 
-    justifyContent: 'center',
-    overflow: 'hidden'
-  }}>
-    <img 
-      src="/CodeScriptLogo.png" 
-      alt="CodeScript Logo" 
-      style={{ 
-        width: '100%', 
-        height: '100%', 
-        objectFit: 'contain' 
-      }} 
-    />
-  </div>
-  <span className="sd-logo-text" style={{ 
-    fontWeight: '600', 
-    fontSize: '18px', 
-    letterSpacing: '-0.5px' 
-  }}>
-    CodeScript
-  </span>
-</div>
+            <div className="sd-logo-icon" style={{ width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+              <img src="/CodeScriptLogo.png" alt="CodeScript Logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+            </div>
+            <span className="sd-logo-text" style={{ fontWeight: '600', fontSize: '18px', letterSpacing: '-0.5px' }}>
+              CodeScript
+            </span>
+          </div>
 
           <div className="sd-user-actions">
-            {/* 🚀 ADDED: Theme Toggle Button */}
             <ThemeToggle />
-            
             <div className="sd-divider"></div>
             
             <div className="sd-user-profile" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -206,8 +332,10 @@ export default function StudentDashboard() {
                   </div>
                 ) : (
                   <>
-                    <h4>{data.user.name}</h4>
-                    <p>ID: {data.user.studentId}</p>
+                    <h4 style={{ margin: 0, fontSize: '0.9rem' }}>{data.user.name}</h4>
+                    <p style={{ margin: 0, fontSize: '0.75rem', opacity: 0.8 }}>
+                      {data.user.pin ? `PIN: ${data.user.pin}` : data.user.email}
+                    </p>
                   </>
                 )}
               </div>
@@ -215,6 +343,8 @@ export default function StudentDashboard() {
               {!loading && (
                 <div style={{ marginLeft: '4px' }}>
                   <MoreOptions>
+                    <MoreOptionsItem icon="edit" onClick={() => setIsEditModalOpen(true)}>Edit Profile</MoreOptionsItem>
+                    <MoreOptionsItem icon="lock_reset" onClick={handlePasswordReset}>Reset Password</MoreOptionsItem>
                     <MoreOptionsItem icon="logout" danger onClick={handleLogout}>Logout</MoreOptionsItem>
                   </MoreOptions>
                 </div>
@@ -255,17 +385,24 @@ export default function StudentDashboard() {
                 className="sd-join-input" 
                 placeholder="Enter Contest Code..." 
                 value={joinCode}
-                onChange={(e) => setJoinCode(e.target.value)}
+                onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
                 onKeyDown={(e) => e.key === 'Enter' && handleJoinContest()}
               />
               <button 
                 className="sd-btn-join" 
                 onClick={handleJoinContest}
                 disabled={joining}
-                style={{ opacity: joining ? 0.7 : 1, cursor: joining ? 'wait' : 'pointer' }}
+                style={{ opacity: joining ? 0.7 : 1, cursor: joining ? 'wait' : 'pointer', minWidth: '130px', display: 'flex', justifyContent: 'center' }}
               >
-                <span>{joining ? 'Joining...' : 'Join Contest'}</span>
-                <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>arrow_forward</span>
+                {/* 🚀 ADDED ROTATING ICON DURING SUBMIT */}
+                {joining ? (
+                  <span className="material-symbols-outlined animate-spin" style={{ fontSize: '18px' }}>sync</span>
+                ) : (
+                  <>
+                    <span>Join Contest</span>
+                    <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>arrow_forward</span>
+                  </>
+                )}
               </button>
             </div>
           </div>
@@ -295,7 +432,6 @@ export default function StudentDashboard() {
                   </div>
                 ))
               ) : data.exams.length === 0 ? (
-                /* 🚀 FIXED: Theme-adaptive empty state */
                 <div style={{ padding: '3rem 1rem', textAlign: 'center', background: 'var(--sd-card)', borderRadius: '12px', border: '1px dashed var(--sd-border)', color: 'var(--sd-text-muted)' }}>
                   <span className="material-symbols-outlined" style={{ fontSize: '48px', opacity: 0.5, marginBottom: '8px' }}>event_available</span>
                   <p>No active exams right now.</p>
@@ -355,7 +491,6 @@ export default function StudentDashboard() {
                       <button 
                         onClick={() => handleExamClick(exam)}
                         className={`sd-btn-exam ${isLive ? 'live' : ''}`} 
-                        /* 🚀 FIXED: Theme-adaptive unselected state */
                         style={{ 
                           background: isTerminated ? 'rgba(239, 68, 68, 0.1)' : (!isLive ? 'var(--sd-hover-bg)' : ''), 
                           color: isTerminated ? '#ef4444' : (!isLive ? 'var(--sd-text-main)' : '') 
@@ -399,7 +534,7 @@ export default function StudentDashboard() {
               <div className="sd-history-header">
                 <h4>Attempted History</h4>
               </div>
-              <div className="sd-history-list">
+              <div className="sd-history-list custom-scrollbar" style={{ maxHeight: '350px', overflowY: 'auto' }}>
                 {loading ? (
                   [1, 2, 3].map(i => (
                     <div key={i} className="sd-history-item" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -414,12 +549,30 @@ export default function StudentDashboard() {
                    <p style={{ color: 'var(--sd-text-muted)', fontSize: '0.875rem', textAlign: 'center', padding: '1rem 0' }}>No attempted exams yet.</p>
                 ) : (
                   data.history.map((item) => (
-                    <div key={item.id} className="sd-history-item">
+                    <div 
+                      key={item.id} 
+                      className="sd-history-item" 
+                      onClick={() => router.push(`/exam/${item.id}/submissions`)}
+                      style={{ 
+                         cursor: 'pointer', 
+                         transition: 'all 0.2s', 
+                         border: '1px solid transparent',
+                         boxSizing: 'border-box'
+                      }}
+                      onMouseEnter={(e) => {
+                         e.currentTarget.style.background = 'var(--sd-hover-bg)';
+                         e.currentTarget.style.borderColor = 'var(--border-light, #334155)';
+                      }}
+                      onMouseLeave={(e) => {
+                         e.currentTarget.style.background = 'transparent';
+                         e.currentTarget.style.borderColor = 'transparent';
+                      }}
+                    >
                       <div className="sd-history-info">
                         <h5>{item.title}</h5>
                         <p>{item.date}</p>
                       </div>
-                      <div>
+                      <div style={{ marginRight: '8px' }}>
                         <span className={`sd-score-badge ${item.scoreClass}`}>{item.score}</span>
                       </div>
                     </div>

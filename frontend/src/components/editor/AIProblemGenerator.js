@@ -16,7 +16,7 @@ export default function AIProblemGenerator({ allowedLangs, onApply }) {
     { label: 'Hard', value: 'Hard' }
   ];
 
-  // 🚀 UPDATED PROMPT: Enforces professional structure and code stub behavior
+  // 🚀 UPDATED PROMPT: Synced Rule #4 to prevent duplicate method generation in driver code
   const generateInternalPrompt = () => {
     return `You are an expert competitive programming problem setter. Create a professional coding problem based on this request: "${promptText}".
 Difficulty Level: ${difficulty}.
@@ -31,21 +31,24 @@ Return STRICTLY a valid JSON object matching this exact schema:
   "solutions": { "Python 3": "...", "Java": "..." },
   "driverCode": { "Python 3": "...", "Java": "..." },
   "testCases": [
-    { "input": "...", "expectedOutput": "...", "isHidden": false }
+    { "input": "...", "expectedOutput": "...", "isHidden": false },
+    { "input": "...", "expectedOutput": "...", "isHidden": true }
   ]
 }
 
 CRITICAL RULES:
-1. DESCRIPTION STRUCTURE: The description MUST follow the structure of top-tier competitive programming platforms. It must include:
-   - A clear, concise problem statement.
-   - Formal constraints (e.g., $1 \\le N \\le 10^5$).
-   - At least two well-explained Input/Output examples showing edge cases.
-2. CODE STUBS (STUDENT TEMPLATE): The "codeStubs" MUST NOT contain the final solution. It must be a starter template (e.g., a class with an empty method) that the student must complete. Include helpful comments like "// Write your code here".
+1. DESCRIPTION STRUCTURE: The description MUST follow the professional structure of top-tier competitive programming platforms (Problem Statement, Constraints, Input/Output formats, and at least two well-explained examples).
+   - DO NOT mention brand names like "LeetCode" or "HackerRank".
+   - DO NOT include the Problem Title as a heading inside the description. Start directly with the problem statement text.
+2. CODE STUBS (STUDENT TEMPLATE): The "codeStubs" MUST be a clean starter template (e.g., a class with an empty method signature) that the student must COMPLETE.
+   - DO NOT include boilerplate or example logic that the student needs to delete.
+   - Include a helpful comment like "// Write your code here" inside the empty method body.
 3. LANGUAGE KEYS: You MUST use exactly "Python 3" as the dictionary key for Python. NEVER use "Python" or "python3".
-4. DRIVER CODE LOGIC: The "driverCode" MUST NOT contain the actual solution or algorithm. Its ONLY job is to read input from standard input (stdin), instantiate/call the user's function/class (defined in codeStubs), and print the result to standard output (stdout).
+4. DRIVER CODE LOGIC: The "driverCode" MUST NEVER redefine the method that the student is supposed to write. It MUST NOT contain the solution logic. Its ONLY job is to read input from standard input (stdin), call the student's method (which exists in the codeStub), and print the result. For example, if the student is writing \`class Solution { public int solve() {...} }\`, the driver code should just be \`class Main { public static void main(...) { ... new Solution().solve(); ... } }\` WITHOUT recreating the \`solve\` method.
 5. ESCAPING: Use single quotes for strings inside code. Double escape LaTeX backslashes (\\\\le).
 6. FORMATTING: Use \\n for EVERY newline and \\t for EVERY tab.
 7. EXAMPLES & BLOCKS: Put Input/Output examples and multi-line text inside triple backticks (e.g., \`\`\`text\\n...\\n\`\`\`). NEVER wrap individual lines of a block in single backticks.
+8. TEST CASES: You MUST generate at least 3 test cases. AT LEAST ONE of these test cases MUST be a hidden test case ("isHidden": true) to test for edge cases or performance invisibly.
 
 DESCRIPTION FORMATTING GUIDE (Use these exact options):
 * Headings: # (H1), ## (H2), ### (H3), #### (H4)

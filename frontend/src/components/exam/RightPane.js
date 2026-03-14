@@ -277,6 +277,7 @@ export default function RightPane({
   };
 
   const renderConsoleBody = () => {
+    // 🚀 ADDED ROTATING ICON DURING CODE EXECUTION
     if (isRunning) {
       return (
         <div style={{ color: 'var(--primary)', padding: '24px', display: 'flex', alignItems: 'center', gap: '12px', fontFamily: 'monospace', fontSize: '0.9rem' }}>

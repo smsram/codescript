@@ -1,7 +1,8 @@
 "use client";
 
-import React, { useState, useEffect, useRef, use, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import { use } from 'react';
 import { io } from 'socket.io-client';
 import { showToast } from '@/components/ui/Toast';
 import { confirmAlert } from '@/components/ui/AlertConfirm';
@@ -41,8 +42,8 @@ export default function ExamIDE({ params }) {
   const [execProgressMsg, setExecProgressMsg] = useState(""); 
   const activeJobId = useRef(null); 
   
-  const [timeLeft, setTimeLeft] = useState(null);
   const [localStrikes, setLocalStrikes] = useState(0); 
+  const [localCamStrikes, setLocalCamStrikes] = useState(0); 
   const [isConnected, setIsConnected] = useState(false);
   
   const [userId, setUserId] = useState(null);
@@ -55,10 +56,20 @@ export default function ExamIDE({ params }) {
 
   const socketRef = useRef(null);
 
-  // Helper to parse IST strings safely from Backend
-  const parseIST = (dateString) => {
-    if (!dateString) return 0;
-    const cleanStr = dateString.endsWith('Z') ? dateString.slice(0, -1) : dateString;
+  const [currentTime, setCurrentTime] = useState(Date.now());
+  const [personalEndTime, setPersonalEndTime] = useState(null);
+  const [globalEndTime, setGlobalEndTime] = useState(null);
+
+  const contestRef = useRef(null);
+  const globalEndTimeRef = useRef(null);
+  const personalEndTimeRef = useRef(null);
+
+  const parseIST = (dateInput) => {
+    if (!dateInput) return 0;
+    if (typeof dateInput === 'number') return dateInput;
+    if (dateInput instanceof Date) return dateInput.getTime();
+    const str = String(dateInput);
+    const cleanStr = str.endsWith('Z') ? str.slice(0, -1) : str;
     return new Date(`${cleanStr}+05:30`).getTime();
   };
 
@@ -108,14 +119,14 @@ export default function ExamIDE({ params }) {
             }
         }
 
-        let realEndTime = null;
-        if (c.endTime) {
-            realEndTime = parseIST(c.endTime);
-            if (now >= realEndTime) {
-                hasSubmittedRef.current = true;
-                showToast("Exam time is already over.", "info");
-                return router.replace(`/exam/${examId}/submissions?reason=timeout`);
-            }
+        const gEnd = c.endTime ? parseIST(c.endTime) : null;
+        setGlobalEndTime(gEnd);
+        globalEndTimeRef.current = gEnd;
+
+        if (gEnd && now >= gEnd) {
+            hasSubmittedRef.current = true;
+            showToast("Exam time is already over.", "info");
+            return router.replace(`/exam/${examId}/submissions?reason=timeout`);
         }
 
         if (data.session && (data.session.status === "SUBMITTED" || data.session.status === "KICKED")) {
@@ -125,7 +136,31 @@ export default function ExamIDE({ params }) {
             return router.replace(`/exam/${examId}/submissions?reason=${reason}`);
         }
 
+        // 🚀 CALCULATE STUDENT'S EXACT DEADLINE (If Session Already Exists)
+        if (data.session && data.session.joinedAt) {
+            const joinedAtMs = parseIST(data.session.joinedAt);
+            const durationMs = c.durationMinutes ? c.durationMinutes * 60000 : null;
+            
+            let pEnd = null;
+            if (gEnd && durationMs) {
+                pEnd = Math.min(gEnd, joinedAtMs + durationMs); 
+            } else if (gEnd) {
+                pEnd = gEnd; 
+            } else if (durationMs) {
+                pEnd = joinedAtMs + durationMs; 
+            }
+            setPersonalEndTime(pEnd);
+            personalEndTimeRef.current = pEnd;
+
+            // 🚀 FIX: Instantly load existing strikes from the DB before sockets even connect!
+            setLocalStrikes(data.session.strikes || 0);
+            
+            // Subtract 1 from cam strikes so the UI accurately ignores the free warning
+            setLocalCamStrikes(data.session.camStrikes ? Math.max(0, data.session.camStrikes - 1) : 0);
+        }
+
         setContest(c);
+        contestRef.current = c;
         
         const rawLangs = c.allowedLangs ? c.allowedLangs.split(',') : ['Python 3'];
         const langs = rawLangs.map(l => {
@@ -178,8 +213,6 @@ export default function ExamIDE({ params }) {
             return newMap;
         });
 
-        if (realEndTime) setTimeLeft(Math.max(0, Math.floor((realEndTime - now) / 1000)));
-
         setExamValidated(true);
         setLoading(false);
 
@@ -191,6 +224,27 @@ export default function ExamIDE({ params }) {
     fetchExam();
   }, [examId, router]);
 
+  useEffect(() => {
+    if (loading || hasSubmittedRef.current) return;
+    const timer = setInterval(() => setCurrentTime(Date.now()), 1000);
+    return () => clearInterval(timer);
+  }, [loading]);
+
+  const timeLeft = personalEndTime ? Math.max(0, Math.floor((personalEndTime - currentTime) / 1000)) : null;
+  const globalTimeLeft = globalEndTime ? Math.max(0, Math.floor((globalEndTime - currentTime) / 1000)) : null;
+
+  useEffect(() => {
+    if (personalEndTime && currentTime >= personalEndTime && !hasSubmittedRef.current) {
+        showToast("Time is up!", "error");
+        handleSubmitExam(true, "TIME_UP");
+    }
+  }, [currentTime, personalEndTime]);
+
+  const formatTime = (sec) => {
+    if (sec === null || sec < 0) return "--:--:--";
+    const h = Math.floor(sec / 3600); const m = Math.floor((sec % 3600) / 60); const s = sec % 60;
+    return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+  };
 
   useEffect(() => {
     if (!examValidated) return; 
@@ -207,6 +261,26 @@ export default function ExamIDE({ params }) {
 
     socketRef.current.on('sync-session', (data) => {
       setLocalStrikes(data.strikes);
+      setLocalCamStrikes(data.camStrikes || 0); 
+      
+      if (data.joinedAt && !personalEndTimeRef.current && contestRef.current) {
+          const joinedAtMs = parseIST(data.joinedAt);
+          const durationMs = contestRef.current.durationMinutes ? contestRef.current.durationMinutes * 60000 : null;
+          const gEnd = globalEndTimeRef.current;
+          
+          let pEnd = null;
+          if (gEnd && durationMs) {
+              pEnd = Math.min(gEnd, joinedAtMs + durationMs);
+          } else if (gEnd) {
+              pEnd = gEnd;
+          } else if (durationMs) {
+              pEnd = joinedAtMs + durationMs;
+          }
+          
+          setPersonalEndTime(pEnd);
+          personalEndTimeRef.current = pEnd;
+      }
+
       if (data.status === "SUBMITTED" || data.status === "KICKED") {
          hasSubmittedRef.current = true;
          const reason = data.status === "KICKED" ? "terminated" : "success";
@@ -240,6 +314,7 @@ export default function ExamIDE({ params }) {
       });
     });
 
+    // Tab Switch Listener
     socketRef.current.on('strike-update', (data) => {
       setLocalStrikes(data.count);
       if (data.status === "KICKED" || data.count >= data.limit) {
@@ -247,13 +322,37 @@ export default function ExamIDE({ params }) {
       } else {
         confirmAlert({
           title: "Violation Detected!", 
-          message: `Strike ${data.count} of ${data.limit}. Please remain on this screen.`,
+          message: `Tab Switch Strike ${data.count} of ${data.limit}. Please remain on this screen.`,
           confirmText: "I Understand", 
           cancelText: null, 
           isDanger: true, 
           darkOverlay: themeRef.current === 'dark'
         });
       }
+    });
+
+    // 🚀 Webcam Strike Listener
+    socketRef.current.on('cam-strike-update', (data) => {
+        setLocalCamStrikes(data.count); 
+        
+        if (data.status === "KICKED" || data.count >= data.limit) {
+            handleSubmitExam(true, "KICKED"); 
+        } else {
+            // 🚀 FIX: Clearly show the backend received the warning
+            if (data.isWarning) {
+                showToast(`🚨 OFFICIAL WARNING: ${data.reason}. The next detection will result in a formal strike!`, "warning");
+            } else {
+                // Actual strikes get the disruptive popup
+                confirmAlert({
+                    title: "Camera Violation Detected!", 
+                    message: `Camera Strike ${data.count} of ${data.limit} (${data.reason}). Please remain focused on the exam.`,
+                    confirmText: "I Understand", 
+                    cancelText: null, 
+                    isDanger: true, 
+                    darkOverlay: themeRef.current === 'dark'
+                });
+            }
+        }
     });
 
     socketRef.current.on('execution-progress', (data) => setExecProgressMsg(data.message));
@@ -282,14 +381,13 @@ export default function ExamIDE({ params }) {
 
     if (currentCode !== lastSavedCode) {
       setSyncStatus("Saving...");
-      // 🚀 Explicitly capturing Date.now() here bypasses any clock misalignments on backend
       socketRef.current.emit('save-draft', {
         examId, 
         userId, 
         problemId: currentProb.id, 
         language: lang, 
         code: currentCode,
-        clientTimestamp: Date.now() // Send the exact millisecond it was saved to help backend log
+        clientTimestamp: Date.now() 
       });
       lastSavedCodeMap.current[trackingKey] = currentCode;
       setTimeout(() => setSyncStatus("All changes saved"), 1500);
@@ -315,25 +413,11 @@ export default function ExamIDE({ params }) {
     }
   }, [examId]); 
 
-  useEffect(() => {
-    if (timeLeft === null || timeLeft <= 0 || hasSubmittedRef.current) return;
-    const timer = setInterval(() => {
-      setTimeLeft(prev => {
-        if (prev <= 1) {
-          clearInterval(timer);
-          showToast("Time is up!", "error");
-          handleSubmitExam(true, "TIME_UP");
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-    return () => clearInterval(timer);
-  }, [timeLeft]);
-
-  const formatTime = (sec) => {
-    const h = Math.floor(sec / 3600); const m = Math.floor((sec % 3600) / 60); const s = sec % 60;
-    return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+  const logCamStrikeToBackend = (reason) => {
+    const uid = userIdRef.current; 
+    if (socketRef.current && socketRef.current.connected && uid) {
+        socketRef.current.emit('violation-webcam', { examId, userId: uid, reason });
+    }
   };
 
   const updateStatus = (id, newStatus) => {
@@ -433,15 +517,31 @@ export default function ExamIDE({ params }) {
   return (
     <ExamSecurity 
       isStrict={contest ? contest.strictMode : false} 
-      allowedStrikes={contest ? contest.strikes : 0} 
+      allowedStrikes={contest && contest.tabStrikes !== false ? contest.strikes : 0} 
       strikes={localStrikes} 
       logStrike={logStrikeToBackend}
+      proctoringEnabled={contest ? contest.proctoringEnabled : false} 
+      logCamStrike={logCamStrikeToBackend} 
       loading={loading}
     >
       <div className={`ide-wrapper ${isDraggingX ? 'is-dragging' : ''}`}>
+        
+        {/* 🚀 If you need a camera initialization overlay, it can go here or within ExamSecurity.
+            If you want to replace the standard text 'loading' with a spinner when the IDE is fetching: */}
+        {loading && (
+            <div style={{ position: 'absolute', inset: 0, zIndex: 9999, background: 'var(--bg-main)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: 'var(--text-main)' }}>
+                <span className="material-symbols-outlined animate-spin" style={{ fontSize: '48px', color: 'var(--primary)', marginBottom: '16px' }}>
+                    sync
+                </span>
+                <h3>Initializing Secure Environment...</h3>
+            </div>
+        )}
+        
         <IdeHeader 
-          loading={loading} contest={contest} timeLeft={timeLeft} formatTime={formatTime} 
-          strikes={localStrikes} isConnected={isConnected} handleSubmitExam={handleSubmitExam} 
+          loading={loading} contest={contest} 
+          timeLeft={timeLeft} globalTimeLeft={globalTimeLeft} formatTime={formatTime} 
+          strikes={localStrikes} camStrikes={localCamStrikes} 
+          isConnected={isConnected} handleSubmitExam={handleSubmitExam} 
         />
         
         <main className="ide-main relative">
@@ -468,7 +568,7 @@ export default function ExamIDE({ params }) {
             syncStatus={syncStatus} triggerSave={triggerSave}
             execProgressMsg={execProgressMsg} 
             handleStopCode={handleStopCode} 
-            isStrict={contest && contest.strikes > 0 ? contest.strictMode : false} 
+            isStrict={contest && contest.strikes > 0 && contest.tabStrikes !== false ? contest.strictMode : false} 
           />
         </main>
       </div>

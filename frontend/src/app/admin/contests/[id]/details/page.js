@@ -9,6 +9,7 @@ import { MoreOptions, MoreOptionsItem } from '@/components/ui/MoreOptions';
 import { showToast } from '@/components/ui/Toast';
 import { confirmAlert } from '@/components/ui/AlertConfirm';
 import Skeleton from '@/components/ui/Skeleton';
+import Pagination from '@/components/ui/Pagination'; 
 import './details.css'; 
 
 export default function ContestDetailsPage({ params }) {
@@ -24,8 +25,13 @@ export default function ContestDetailsPage({ params }) {
   const [dynamicStatus, setDynamicStatus] = useState(""); 
   const [timeDisplay, setTimeDisplay] = useState("--:--");
   const [contestLimit, setContestLimit] = useState(3);
+  const [camLimit, setCamLimit] = useState(3); 
   const [totalQuestions, setTotalQuestions] = useState(0); 
   
+  const [hasTabStrikes, setHasTabStrikes] = useState(false);
+  const [hasCamStrikes, setHasCamStrikes] = useState(false);
+  const [durationMins, setDurationMins] = useState(null);
+
   const [dates, setDates] = useState({ start: null, end: null });
   const [scheduleText, setScheduleText] = useState("");
   const [durationText, setDurationText] = useState("");
@@ -34,9 +40,14 @@ export default function ContestDetailsPage({ params }) {
   const [filter, setFilter] = useState('all');
   const [search, setSearch] = useState('');
 
-  const [refreshInterval, setRefreshInterval] = useState(30);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
 
+  const [refreshInterval, setRefreshInterval] = useState(30);
   const [exportOpen, setExportOpen] = useState(false);
+  
+  // 🚀 Ticking clock to dynamically calculate "Time Spent" for active students
+  const [currentTimeTick, setCurrentTimeTick] = useState(Date.now());
   
   const socketRef = useRef(null);
   const autoRefreshTimerRef = useRef(null);
@@ -92,7 +103,14 @@ export default function ContestDetailsPage({ params }) {
       
       setContestTitle(data.contestTitle);
       setContestStatus(data.contestStatus);
-      setContestLimit(data.contestStrikes);
+      
+      setContestLimit(data.contestStrikes || 0);
+      setHasTabStrikes(data.tabStrikes !== false && data.contestStrikes > 0);
+      
+      setCamLimit(data.webcamStrikes || 0);
+      setHasCamStrikes(data.proctoringEnabled === true);
+      
+      setDurationMins(data.durationMinutes);
       setTotalQuestions(data.totalProblems || 0); 
       setDates({ start: data.startTime, end: data.endTime });
       
@@ -110,9 +128,8 @@ export default function ContestDetailsPage({ params }) {
              socketRef.current.emit('join-admin-monitor', { examId });
            });
            socketRef.current.on('live-stats-update', (liveData) => {
+             // Will now correctly sync because backend includes Attempted and PIN!
              setStudents(liveData.sessions || []);
-             setContestLimit(liveData.contestStrikes || 3);
-             setTotalQuestions(liveData.totalProblems || 0);
            });
          }
       }
@@ -132,11 +149,14 @@ export default function ContestDetailsPage({ params }) {
     };
   }, [fetchContestData]);
 
+  // General Status Timer & Time Spent Tick
   useEffect(() => {
     if (!dates.start || !dates.end) return;
 
     const timer = setInterval(() => {
       const now = new Date().getTime();
+      setCurrentTimeTick(now); // Force re-render for Time Spent calculation
+
       const start = convertIstToLocal(dates.start);
       const end = convertIstToLocal(dates.end);
 
@@ -170,89 +190,60 @@ export default function ContestDetailsPage({ params }) {
     if (autoRefreshTimerRef.current) {
       clearInterval(autoRefreshTimerRef.current);
     }
-    
     if (dynamicStatus === 'ACTIVE' && refreshInterval > 0) {
-      autoRefreshTimerRef.current = setInterval(() => {
-        fetchContestData(true); 
-      }, refreshInterval * 1000);
+      autoRefreshTimerRef.current = setInterval(() => fetchContestData(true), refreshInterval * 1000);
     }
-
     return () => {
       if (autoRefreshTimerRef.current) clearInterval(autoRefreshTimerRef.current);
     };
   }, [dynamicStatus, fetchContestData, refreshInterval]);
 
-  // 🚀 FIXED: Forces HTTP call so the Database is strictly updated, then uses Socket to notify the student.
   const handleResetExam = (userId, studentName) => {
     confirmAlert({
       title: "Reset Student Exam?",
       message: `Resetting the exam for ${studentName} allows them to retake it with 0 strikes. Drafts are kept.`,
       confirmText: "Yes, Reset Exam", cancelText: "Cancel", isDanger: false, darkOverlay: true,
       onConfirm: async () => {
-        
-        // Optimistic UI Update
-        setStudents(prev => prev.map(s => s.userId === userId ? { ...s, status: 'IN_PROGRESS', strikes: 0 } : s));
-
+        setStudents(prev => prev.map(s => s.userId === userId ? { ...s, status: 'IN_PROGRESS', strikes: 0, camStrikes: 0 } : s));
         try {
           const token = localStorage.getItem('token');
-          // 1. DELETE from Database reliably via HTTP
           const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/contests/${examId}/reset-student`, {
-            method: 'POST', 
-            headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+            method: 'POST', headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
             body: JSON.stringify({ userId })
           });
-          
           if (!res.ok) throw new Error("Backend database reset failed.");
-
-          // 2. ONLY if HTTP succeeds, emit the socket event to force the student's browser to refresh
-          if (socketRef.current && socketRef.current.connected) {
-             socketRef.current.emit('admin-reset-student', { examId, userId });
-          }
-
+          if (socketRef.current && socketRef.current.connected) socketRef.current.emit('admin-reset-student', { examId, userId });
           showToast(`Exam reset for ${studentName}`, "success");
-          fetchContestData(true); // Pull fresh truth from DB
+          fetchContestData(true); 
         } catch (err) { 
           showToast("Failed to reset. Check server logs.", "error"); 
-          fetchContestData(true); // Revert optimistic update if HTTP failed
+          fetchContestData(true); 
         }
       }
     });
   };
 
-  // 🚀 FIXED: Forces HTTP call for termination just like Reset.
   const handleTerminateSession = (userId, studentName) => {
     confirmAlert({
       title: "Terminate Session?",
       message: `Forcibly end the exam for ${studentName}. They will be kicked immediately.`,
       confirmText: "Terminate Exam", cancelText: "Cancel", isDanger: true, darkOverlay: true,
       onConfirm: async () => {
-        
-        // Optimistic UI Update
         setStudents(prev => prev.map(s => s.userId === userId ? { ...s, status: 'KICKED' } : s));
-
         try {
           const token = localStorage.getItem('token');
-          // Note: You must ensure this route exists in your backend controller!
           await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/contests/${examId}/terminate-student`, {
-             method: 'POST', 
-             headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+             method: 'POST', headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
              body: JSON.stringify({ userId })
           });
-
-          // Kick them out via socket
-          if (socketRef.current && socketRef.current.connected) {
-             socketRef.current.emit('admin-terminate-student', { examId, userId });
-          }
+          if (socketRef.current && socketRef.current.connected) socketRef.current.emit('admin-terminate-student', { examId, userId });
           showToast(`Termination successful for ${studentName}`, "success");
           fetchContestData(true);
         } catch (err) {
-          // If you don't have a specific HTTP route for termination, fallback to just socket
           if (socketRef.current && socketRef.current.connected) {
              socketRef.current.emit('admin-terminate-student', { examId, userId });
              showToast(`Termination command sent for ${studentName}`, "success");
-          } else {
-             showToast("Failed to terminate student.", "error");
-          }
+          } else showToast("Failed to terminate student.", "error");
           fetchContestData(true);
         }
       }
@@ -260,21 +251,26 @@ export default function ContestDetailsPage({ params }) {
   };
 
   const handleExportCSV = () => {
-    const headers = ["Name", "Email", "Status", "Strikes", "Attempted", "Total Questions"];
-    const rows = filteredStudents.map(s => [
-      `"${s.user.name}"`, 
-      `"${s.user.email}"`, 
-      s.status, 
-      s.strikes, 
-      s.attempted || 0,
-      totalQuestions
-    ]);
+    const headers = ["Name", "Email", "PIN", "Status", "Attempted", "Total Questions"];
+    if (hasTabStrikes) headers.push("Tab Strikes");
+    if (hasCamStrikes) headers.push("Cam Strikes");
+    headers.push("Time Spent (Mins)");
+
+    const rows = filteredStudents.map(s => {
+      const row = [ `"${s.user.name}"`, `"${s.user.email}"`, `"${s.user.pin || 'N/A'}"`, s.status, s.attempted || 0, totalQuestions ];
+      if (hasTabStrikes) row.push(s.strikes);
+      if (hasCamStrikes) row.push(Math.max(0, s.camStrikes - 1));
+      
+      const startMs = convertIstToLocal(s.joinedAt);
+      const endMs = s.status === 'IN_PROGRESS' ? Date.now() : (s.completedAt ? convertIstToLocal(s.completedAt) : Date.now());
+      row.push(s.joinedAt ? Math.max(1, Math.round((endMs - startMs) / 60000)) : 0);
+      return row;
+    });
     
     const csvContent = [headers.join(","), ...rows.map(e => e.join(","))].join("\n");
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement("a");
-    const url = URL.createObjectURL(blob);
-    link.setAttribute("href", url);
+    link.setAttribute("href", URL.createObjectURL(blob));
     link.setAttribute("download", `${contestTitle.replace(/\s+/g, '_')}_Results.csv`);
     document.body.appendChild(link);
     link.click();
@@ -282,26 +278,52 @@ export default function ContestDetailsPage({ params }) {
     setExportOpen(false);
   };
 
-  const handleExportPDF = () => {
-    window.print();
-    setExportOpen(false);
-  };
+  useEffect(() => { setCurrentPage(1); }, [search, filter]);
 
   const filteredStudents = students.filter(s => {
-    const matchesSearch = s.user.name.toLowerCase().includes(search.toLowerCase()) || s.user.email.toLowerCase().includes(search.toLowerCase());
+    const matchesSearch = s.user.name.toLowerCase().includes(search.toLowerCase()) || 
+                          s.user.email.toLowerCase().includes(search.toLowerCase()) ||
+                          (s.user.pin && s.user.pin.toLowerCase().includes(search.toLowerCase()));
+                          
     if (filter === 'all') return matchesSearch;
-    if (filter === 'coding' && s.status === 'IN_PROGRESS') return matchesSearch;
-    if (filter === 'warning' && contestLimit > 0 && s.strikes >= (contestLimit - 1) && s.status === 'IN_PROGRESS') return matchesSearch;
-    if (filter === 'submitted' && s.status === 'SUBMITTED') return matchesSearch;
-    if (filter === 'kicked' && s.status === 'KICKED') return matchesSearch;
+    if (filter === 'coding') return matchesSearch && s.status === 'IN_PROGRESS';
+    if (filter === 'warning') return matchesSearch && s.status === 'IN_PROGRESS' && (
+      (hasTabStrikes && s.strikes >= (contestLimit - 1)) || 
+      (hasCamStrikes && Math.max(0, s.camStrikes - 1) >= (camLimit - 1)) // 🚀 Dynamic Alert Trigger
+    );
+    if (filter === 'submitted') return matchesSearch && s.status === 'SUBMITTED';
+    if (filter === 'kicked') return matchesSearch && s.status === 'KICKED';
     return false;
   });
 
-  const activeCount = students.filter(s => s.status === 'IN_PROGRESS').length;
-  const warningCount = contestLimit > 0 ? students.filter(s => s.status === 'IN_PROGRESS' && s.strikes >= (contestLimit - 1)).length : 0;
-  const submittedCount = students.filter(s => s.status === 'SUBMITTED').length;
-  
+  const paginatedStudents = filteredStudents.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+
   const isLive = dynamicStatus === 'ACTIVE';
+
+  const activeCount = students.filter(s => s.status === 'IN_PROGRESS').length;
+  const warningCount = students.filter(s => s.status === 'IN_PROGRESS' && (
+      (hasTabStrikes && s.strikes >= (contestLimit - 1)) || 
+      (hasCamStrikes && Math.max(0, s.camStrikes - 1) >= (camLimit - 1))
+  )).length;
+  const submittedCount = students.filter(s => s.status === 'SUBMITTED').length;
+
+  // 🚀 FIXED: Dynamic Time Spent calculation based on live status
+  const calculateTimeSpent = (student) => {
+      if (!student.joinedAt) return "--";
+      const startMs = convertIstToLocal(student.joinedAt);
+      
+      // If they are writing right now, use currentTimeTick. Else use completedAt.
+      const endMs = student.status === 'IN_PROGRESS' 
+          ? currentTimeTick 
+          : (student.completedAt ? convertIstToLocal(student.completedAt) : currentTimeTick);
+          
+      const diffMs = Math.max(0, endMs - startMs);
+      const hours = Math.floor(diffMs / 3600000);
+      const mins = Math.floor((diffMs % 3600000) / 60000);
+      
+      if (hours > 0) return `${hours}h ${mins}m`;
+      return `${Math.max(1, mins)}m`;
+  };
 
   return (
     <div className="live-monitor-container">
@@ -311,7 +333,6 @@ export default function ContestDetailsPage({ params }) {
         Back to Contests
       </Link>
 
-      {/* HEADER */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '24px', flexWrap: 'wrap', gap: '16px' }}>
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
@@ -319,7 +340,6 @@ export default function ContestDetailsPage({ params }) {
               {loading ? <Skeleton width="300px" height="32px" /> : contestTitle}
             </h2>
             
-            {/* ALL STATES: Manual Refresh Button */}
             {!loading && (
               <button 
                 onClick={() => fetchContestData(true)} 
@@ -332,16 +352,10 @@ export default function ContestDetailsPage({ params }) {
               </button>
             )}
             
-            {/* LIVE STATE: Auto Refresh Settings */}
             {!loading && isLive && (
                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'rgba(15, 23, 42, 0.5)', padding: '2px 8px', borderRadius: '4px', border: '1px solid #334155' }}>
                  <span className="material-symbols-outlined" style={{ fontSize: '14px', color: '#94a3b8' }}>sync</span>
-                 <input 
-                   type="number" 
-                   value={refreshInterval} 
-                   onChange={(e) => setRefreshInterval(Number(e.target.value))} 
-                   style={{ width: '40px', background: 'transparent', border: 'none', color: '#f8fafc', fontSize: '0.75rem', outline: 'none', textAlign: 'center' }}
-                 />
+                 <input type="number" value={refreshInterval} onChange={(e) => setRefreshInterval(Number(e.target.value))} style={{ width: '40px', background: 'transparent', border: 'none', color: '#f8fafc', fontSize: '0.75rem', outline: 'none', textAlign: 'center' }} />
                  <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>sec</span>
                </div>
             )}
@@ -387,7 +401,6 @@ export default function ContestDetailsPage({ params }) {
           </div>
         </div>
         
-        {/* EXPORT BUTTON */}
         <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
           {loading ? (
             <Skeleton width="120px" height="38px" borderRadius="6px" />
@@ -413,7 +426,6 @@ export default function ContestDetailsPage({ params }) {
         </div>
       </div>
 
-      {/* STATS OVERVIEW */}
       <div className="stats-grid">
         <div className="stat-card">
           <span className="material-symbols-outlined stat-card-icon" style={{ color: '#06b6d4' }}>groups</span>
@@ -445,13 +457,12 @@ export default function ContestDetailsPage({ params }) {
         </div>
       </div>
 
-      {/* ACTIVITY MONITOR */}
       <div className="activity-card">
         <div className="activity-header">
           <h3 className="activity-title">{isLive ? 'Real-time Student Activity' : 'Student Results & Sessions'}</h3>
           <div className="activity-filters">
              <div className="search-box-small">
-                <input type="text" placeholder="Search by name..." value={search} onChange={(e) => setSearch(e.target.value)} disabled={loading} />
+                <input type="text" placeholder="Search name or PIN..." value={search} onChange={(e) => setSearch(e.target.value)} disabled={loading} />
                 <span className="material-symbols-outlined search-icon">search</span>
              </div>
              <div style={{ width: '150px' }}>
@@ -472,10 +483,12 @@ export default function ContestDetailsPage({ params }) {
           <table className="live-table">
             <thead>
               <tr>
-                <th>Student Details</th>
+                <th>Student</th>
                 <th>Attempted</th>
                 <th>Status</th>
-                <th>Tab-Switch Strikes</th>
+                {hasTabStrikes && <th>Tab Strikes</th>}
+                {hasCamStrikes && <th>Webcam Strikes</th>}
+                <th>Time Spent {durationMins ? `(Max: ${durationMins}m)` : ''}</th>
                 <th style={{ textAlign: 'right' }}>Actions</th>
               </tr>
             </thead>
@@ -491,28 +504,40 @@ export default function ContestDetailsPage({ params }) {
                     </td>
                     <td><Skeleton width="40px" height="20px" borderRadius="10px" /></td>
                     <td><Skeleton width="90px" height="24px" borderRadius="12px" /></td>
-                    <td><Skeleton width="80px" height="16px" /></td>
+                    {hasTabStrikes && <td><Skeleton width="40px" height="16px" /></td>}
+                    {hasCamStrikes && <td><Skeleton width="40px" height="16px" /></td>}
+                    <td><Skeleton width="60px" height="16px" /></td>
                     <td><div style={{ display: 'flex', justifyContent: 'flex-end' }}><Skeleton width="24px" height="24px" /></div></td>
                   </tr>
                 ))
-              ) : filteredStudents.length === 0 ? (
-                <tr><td colSpan="5" style={{ textAlign: 'center', padding: '40px', color: '#64748b' }}>No students found matching your criteria.</td></tr>
-              ) : filteredStudents.map((student) => {
-                const isAnomaly = contestLimit > 0 && student.status === 'IN_PROGRESS' && student.strikes >= (contestLimit - 1);
+              ) : paginatedStudents.length === 0 ? (
+                <tr><td colSpan={hasTabStrikes && hasCamStrikes ? 7 : hasTabStrikes || hasCamStrikes ? 6 : 5} style={{ textAlign: 'center', padding: '40px', color: '#64748b' }}>No students found matching your criteria.</td></tr>
+              ) : paginatedStudents.map((student) => {
                 
+                const displayCamStrikes = Math.max(0, student.camStrikes - 1);
+
+                const isAnomaly = student.status === 'IN_PROGRESS' && (
+                    (hasTabStrikes && student.strikes >= (contestLimit - 1)) || 
+                    (hasCamStrikes && displayCamStrikes >= (camLimit - 1))
+                );
+                
+                // Constructing tooltip text to hide PIN & Email behind hover cleanly
+                const hoverText = `Email: ${student.user.email}${student.user.pin ? `\nPIN: ${student.user.pin}` : ''}`;
+
                 return (
                   <tr key={student.id} style={{ backgroundColor: isAnomaly ? 'rgba(239, 68, 68, 0.05)' : '' }}>
                     <td>
-                      <div className="student-cell">
+                      {/* 🚀 Hover to see Email & PIN natively via title attribute */}
+                      <div className="student-cell" title={hoverText} style={{ cursor: 'help' }}>
                         <div className={`student-avatar ${isAnomaly ? 'anomaly' : 'normal'}`}>
                           {student.user.name.substring(0, 2).toUpperCase()}
                         </div>
                         <div className="student-info">
-                          <p>
+                          <p style={{ display: 'flex', alignItems: 'center', gap: '6px', margin: 0, fontWeight: 500, color: '#f8fafc' }}>
                             {student.user.name}
-                            {isAnomaly && <span className="material-symbols-outlined" style={{ color: '#f59e0b', fontSize: '16px', marginLeft: '6px' }}>warning</span>}
+                            <span className="material-symbols-outlined" style={{ fontSize: '14px', color: '#64748b' }}>info</span>
+                            {isAnomaly && <span className="material-symbols-outlined" style={{ color: '#f59e0b', fontSize: '16px' }}>warning</span>}
                           </p>
-                          <p>{student.user.email}</p>
                         </div>
                       </div>
                     </td>
@@ -531,19 +556,29 @@ export default function ContestDetailsPage({ params }) {
                       </span>
                     </td>
 
+                    {/* 🚀 Dynamic Strike Columns Format: 1 / 3 */}
+                    {hasTabStrikes && (
+                       <td>
+                          <span style={{ color: student.strikes >= contestLimit ? '#ef4444' : student.strikes > 0 ? '#f59e0b' : '#94a3b8', fontWeight: 600, background: 'rgba(15, 23, 42, 0.5)', padding: '4px 8px', borderRadius: '4px' }}>
+                             {student.strikes} <span style={{color: '#475569'}}>/</span> {contestLimit}
+                          </span>
+                       </td>
+                    )}
+
+                    {hasCamStrikes && (
+                       <td>
+                          <span style={{ color: displayCamStrikes >= camLimit ? '#ef4444' : displayCamStrikes > 0 ? '#f59e0b' : '#94a3b8', fontWeight: 600, background: 'rgba(15, 23, 42, 0.5)', padding: '4px 8px', borderRadius: '4px' }}>
+                             {displayCamStrikes} <span style={{color: '#475569'}}>/</span> {camLimit}
+                          </span>
+                       </td>
+                    )}
+
+                    {/* 🚀 Dynamic Time Spent Column */}
                     <td>
-                      <div className="strike-container" title={`${student.strikes} strikes logged`}>
-                        {contestLimit === 0 ? (
-                           <span style={{ color: '#64748b', fontSize: '0.85rem' }}>Indefinite</span>
-                        ) : (
-                          [...Array(contestLimit)].map((_, i) => {
-                            let strikeClass = "strike-safe"; 
-                            if (i < student.strikes) strikeClass = "strike-used"; 
-                            if (student.strikes >= (contestLimit - 1) && i < student.strikes) strikeClass = "strike-danger"; 
-                            return <div key={i} className={`strike-dot ${strikeClass}`}></div>;
-                          })
-                        )}
-                      </div>
+                       <span style={{ color: '#e2e8f0', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '6px', background: '#1e293b', padding: '4px 10px', borderRadius: '4px', width: 'fit-content' }}>
+                           <span className={`material-symbols-outlined ${student.status === 'IN_PROGRESS' ? 'animate-pulse' : ''}`} style={{ fontSize: '16px', color: student.status === 'IN_PROGRESS' ? '#10b981' : '#64748b' }}>schedule</span>
+                           {calculateTimeSpent(student)}
+                       </span>
                     </td>
 
                     <td>
@@ -553,20 +588,20 @@ export default function ContestDetailsPage({ params }) {
                             View Exam Logs
                           </MoreOptionsItem>
                           
-                          {(student.status === 'SUBMITTED' || student.status === 'KICKED' || student.strikes > 0) && (
+                          {(student.status === 'SUBMITTED' || student.status === 'KICKED' || student.strikes > 0 || student.camStrikes > 0) && (
                             <MoreOptionsItem icon="restart_alt" onClick={() => handleResetExam(student.userId, student.user.name)}>
                               Reset Exam (Allow Retake)
                             </MoreOptionsItem>
                           )}
                           
                           {student.status === 'IN_PROGRESS' && isLive && (
-  <div style={{ height: '1px', backgroundColor: '#334155', margin: '4px 0' }}></div>
-)}
-{student.status === 'IN_PROGRESS' && isLive && (
-  <MoreOptionsItem icon="block" danger onClick={() => handleTerminateSession(student.userId, student.user.name)}>
-    Terminate Session
-  </MoreOptionsItem>
-)}
+                            <div style={{ height: '1px', backgroundColor: '#334155', margin: '4px 0' }}></div>
+                          )}
+                          {student.status === 'IN_PROGRESS' && isLive && (
+                            <MoreOptionsItem icon="block" danger onClick={() => handleTerminateSession(student.userId, student.user.name)}>
+                              Terminate Session
+                            </MoreOptionsItem>
+                          )}
                         </MoreOptions>
                       </div>
                     </td>
@@ -577,9 +612,16 @@ export default function ContestDetailsPage({ params }) {
           </table>
         </div>
 
+        {/* 🚀 Pagination Component */}
         {!loading && filteredStudents.length > 0 && (
-           <div style={{ padding: '12px 24px', borderTop: '1px solid #1e293b', fontSize: '0.85rem', color: '#64748b' }}>
-              Showing {filteredStudents.length} of {students.length} participants
+           <div style={{ padding: '16px' }}>
+              <Pagination 
+                 currentPage={currentPage}
+                 totalItems={filteredStudents.length}
+                 itemsPerPage={itemsPerPage}
+                 onNext={() => setCurrentPage(p => p + 1)}
+                 onPrev={() => setCurrentPage(p => p - 1)}
+              />
            </div>
         )}
 

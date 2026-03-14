@@ -13,6 +13,7 @@ export default function EditContestPage({ params }) {
 
   const [contestData, setContestData] = useState({
     title: '', description: '', startTime: '', endTime: '', 
+    durationMinutes: '', proctoringEnabled: false, tabStrikes: true, 
     isPrivate: false, joinCode: '', strikes: 3, strictMode: true, 
     allowedLangs: [], status: 'DRAFT'
   });
@@ -33,6 +34,7 @@ export default function EditContestPage({ params }) {
       if (cachedData) {
         setContestData(JSON.parse(cachedData));
         setFetchingInitial(false); 
+        setIsDirty(true);
       }
 
       if (cachedData && cachedProbs) {
@@ -53,6 +55,11 @@ export default function EditContestPage({ params }) {
             setContestData({
               title: fetched.title || '', description: fetched.description || '',
               startTime: formatForInput(fetched.startTime), endTime: formatForInput(fetched.endTime),
+              
+              durationMinutes: fetched.durationMinutes || '',             
+              proctoringEnabled: fetched.proctoringEnabled || false,      
+              tabStrikes: fetched.tabStrikes !== undefined ? fetched.tabStrikes : true, 
+
               isPrivate: fetched.isPrivate, joinCode: fetched.joinCode || '', 
               strikes: fetched.strikes, strictMode: fetched.strictMode,
               allowedLangs: fetched.allowedLangs ? fetched.allowedLangs.split(',') : [],
@@ -80,8 +87,12 @@ export default function EditContestPage({ params }) {
     }
   }, [contestData, selectedProblems, fetchingInitial, fetchingProblems, contestId]);
 
-  // 🚀 NEW: AUTO-SAVE ORDER FUNCTION
-  // This updates the DB immediately when a problem is moved
+  // Sync to topbar safely
+  useEffect(() => {
+    window.dispatchEvent(new CustomEvent('set-topbar-dirty', { detail: isDirty }));
+    return () => window.dispatchEvent(new CustomEvent('set-topbar-dirty', { detail: false }));
+  }, [isDirty]);
+
   const saveProblemOrder = async (newOrder) => {
     try {
       const token = localStorage.getItem('token');
@@ -91,13 +102,12 @@ export default function EditContestPage({ params }) {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify({ 
-          ...dataRef.current, // Keep current contest settings
+          ...dataRef.current, 
           orderedProblemIds: orderedIds 
         })
       });
 
       if (!response.ok) throw new Error("Auto-save order failed");
-      console.log("Order auto-saved successfully");
     } catch (err) {
       showToast("Order sync failed. Please save manually.", "warning");
     }
@@ -106,7 +116,7 @@ export default function EditContestPage({ params }) {
   const handleReorderProblems = (newOrder) => { 
     setSelectedProblems(newOrder); 
     setIsDirty(true); 
-    saveProblemOrder(newOrder); // 🚀 Trigger the instant update
+    saveProblemOrder(newOrder); 
   };
 
   const handleLaunch = async (e) => {
@@ -156,13 +166,17 @@ export default function EditContestPage({ params }) {
     const handleCancel = () => {
       sessionStorage.removeItem(`edit_data_${contestId}`);
       sessionStorage.removeItem(`edit_probs_${contestId}`);
+      setIsDirty(false);
       router.push('/admin/contests');
     };
     window.addEventListener('trigger-cancel', handleCancel);
     return () => window.removeEventListener('trigger-cancel', handleCancel);
   }, [contestId, router]);
 
-  const handleDataChange = (newData) => { setContestData(newData); setIsDirty(true); };
+  const handleDataChange = (newData) => { 
+      setContestData(newData); 
+      setIsDirty(true); 
+  };
 
   const handlePermanentDelete = async (problem) => {
     if (!confirm(`Permanently delete "${problem.title}"?`)) return;
@@ -193,14 +207,10 @@ export default function EditContestPage({ params }) {
   );
 
   return (
-    <div className="builder-container">
+    <div className="builder-container" style={{ paddingBottom: '4rem' }}>
       <div className="flex justify-between items-center mb-8">
         <h2 className="text-2xl font-bold text-slate-50">{contestData.title || "Untitled Contest"}</h2>
-        {isDirty && (
-          <div className="flex items-center gap-2 text-amber-500 text-sm font-semibold">
-            <span className="material-symbols-outlined text-base">warning</span> Unsaved changes
-          </div>
-        )}
+        {/* 🚀 Removed the old duplicate inline label here to keep the UI clean! */}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

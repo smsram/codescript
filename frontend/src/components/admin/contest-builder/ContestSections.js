@@ -54,14 +54,25 @@ export function BasicDetails({ data, onChange }) {
             />
           </div>
         </div>
+        
+        {/* Duration Field */}
+        <div>
+          <label className="builder-label">Exam Duration (Minutes) - Optional</label>
+          <input 
+            type="number" 
+            className="builder-input" 
+            placeholder="e.g. 30 (Leave blank to allow full window)" 
+            value={data.durationMinutes || ''} 
+            onChange={e => onChange({...data, durationMinutes: e.target.value === '' ? null : Number(e.target.value)})} 
+          />
+          <p style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '4px' }}>Limits writing time once started. Overridden by End Time.</p>
+        </div>
       </div>
     </div>
   );
 }
 
 export function SecuritySettings({ data, onChange }) {
-  
-  // Helper to generate a random 6-character code
   const generateRandomCode = () => {
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
     let code = '';
@@ -97,8 +108,6 @@ export function SecuritySettings({ data, onChange }) {
             <p style={{ fontSize: '0.75rem', color: '#64748b' }}>Require access code to join</p>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-            
-            {/* The editable Join Code Input */}
             {data.isPrivate && (
               <input 
                 type="text" 
@@ -113,13 +122,52 @@ export function SecuritySettings({ data, onChange }) {
                 }}
               />
             )}
-
             <label className="switch">
               <input type="checkbox" checked={data.isPrivate} onChange={handleTogglePrivate} />
               <span className="slider"></span>
             </label>
           </div>
         </div>
+
+        {/* 🚀 AI Webcam Proctoring Toggle with Strike Counter */}
+        <div style={{ paddingTop: '1.25rem', borderTop: '1px solid #334155' }}>
+          <div className="flex-between-responsive">
+            <div>
+              <p style={{ fontSize: '0.875rem', fontWeight: 500, color: '#f1f5f9' }}>AI Webcam Proctoring</p>
+              <p style={{ fontSize: '0.75rem', color: '#64748b', maxWidth: '85%' }}>
+                Exam requires a functional camera to start. Detects multiple faces and mobile phones.
+              </p>
+            </div>
+            <label className="switch">
+              <input 
+                type="checkbox" 
+                checked={data.proctoringEnabled || false} 
+                onChange={e => {
+                  const isEnabled = e.target.checked;
+                  // If turned on, default to 3 strikes. If turned off, reset to 0.
+                  onChange({...data, proctoringEnabled: isEnabled, webcamStrikes: isEnabled ? 3 : 0});
+                }} 
+              />
+              <span className="slider"></span>
+            </label>
+          </div>
+
+          {/* 🚀 Conditional WebCam Strike Controls */}
+          {data.proctoringEnabled && (
+            <div style={{ marginTop: '1rem', padding: '12px', background: 'rgba(236, 72, 153, 0.05)', border: '1px solid rgba(236, 72, 153, 0.2)', borderRadius: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div>
+                <p style={{ fontSize: '0.85rem', fontWeight: 500, color: '#f1f5f9' }}>Max Camera Violations</p>
+                <p style={{ fontSize: '0.7rem', color: '#ec4899', marginTop: '2px' }}>Note: The 1st detection is always a free warning.</p>
+              </div>
+              <div className="stepper" style={{ borderColor: 'rgba(236, 72, 153, 0.4)' }}>
+                <button type="button" className="btn-step" onClick={() => onChange({...data, webcamStrikes: Math.max(1, (data.webcamStrikes || 3) - 1)})}>-</button>
+                <div className="stepper-val" style={{ color: '#ec4899' }}>{data.webcamStrikes || 3}</div>
+                <button type="button" className="btn-step" onClick={() => onChange({...data, webcamStrikes: (data.webcamStrikes || 3) + 1})}>+</button>
+              </div>
+            </div>
+          )}
+        </div>
+
       </div>
     </div>
   );
@@ -155,21 +203,35 @@ export function EnvironmentRules({ data, onChange }) {
         </div>
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+        
+        {/* Tab Strike toggle logic */}
         <div className="flex-between-responsive">
           <div>
             <p style={{ fontSize: '0.875rem', fontWeight: 500, color: '#f1f5f9' }}>Max Tab-Switch Strikes</p>
-            <p style={{ fontSize: '0.75rem', color: '#64748b' }}>Auto-submit after limit reached</p>
+            <p style={{ fontSize: '0.75rem', color: '#64748b' }}>Enables Fullscreen lock. Auto-submits after limit reached.</p>
           </div>
-          <div className="stepper">
-            <button type="button" className="btn-step" onClick={() => onChange({...data, strikes: Math.max(0, data.strikes - 1)})}>-</button>
-            <div className="stepper-val">{data.strikes}</div>
-            <button type="button" className="btn-step" onClick={() => onChange({...data, strikes: data.strikes + 1})}>+</button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+            {data.tabStrikes !== false && (
+              <div className="stepper">
+                <button type="button" className="btn-step" onClick={() => onChange({...data, strikes: Math.max(1, data.strikes - 1)})}>-</button>
+                <div className="stepper-val">{data.strikes}</div>
+                <button type="button" className="btn-step" onClick={() => onChange({...data, strikes: data.strikes + 1})}>+</button>
+              </div>
+            )}
+            <label className="switch">
+              <input type="checkbox" checked={data.tabStrikes !== false} onChange={e => {
+                const isEnabled = e.target.checked;
+                onChange({...data, tabStrikes: isEnabled, strikes: isEnabled ? 3 : 0});
+              }} />
+              <span className="slider"></span>
+            </label>
           </div>
         </div>
+
         <div className="flex-between-responsive" style={{ paddingTop: '1.25rem', borderTop: '1px solid #334155' }}>
           <div>
             <p style={{ fontSize: '0.875rem', fontWeight: 500, color: '#f1f5f9' }}>Strict Mode</p>
-            <p style={{ fontSize: '0.75rem', color: '#64748b' }}>Disable copy/paste & clipboard</p>
+            <p style={{ fontSize: '0.75rem', color: '#64748b' }}>Disable right-click, copy/paste, and developer tools</p>
           </div>
           <label className="switch">
             <input type="checkbox" checked={data.strictMode} onChange={e => onChange({...data, strictMode: e.target.checked})} />
@@ -249,7 +311,6 @@ export function ProblemManager({
           <h3>Contest Problems</h3>
         </div>
         
-        {/* 🚀 REMOVED THE IMPORT BUTTON - ONLY "CREATE NEW" REMAINS */}
         <div style={{ display: 'flex', gap: '12px' }}>
           <Link href={problemCreateUrl} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 16px', background: '#0ea5e9', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 500, fontSize: '0.875rem', textDecoration: 'none' }}>
             <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>add</span>
@@ -289,7 +350,6 @@ export function ProblemManager({
                   </div>
                 </div>
                 
-                {/* 🚀 REMOVED THE UNLINK BUTTON - ONLY EDIT AND PERMANENT DELETE REMAIN */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                   <Link href={getProblemEditUrl(prob.id)} title="Edit Problem" style={{ display: 'flex', padding: '8px', color: '#94a3b8', background: 'rgba(255,255,255,0.05)', borderRadius: '6px', textDecoration: 'none' }} onMouseOver={e => e.currentTarget.style.color = '#0ea5e9'} onMouseOut={e => e.currentTarget.style.color = '#94a3b8'}>
                     <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>edit</span>

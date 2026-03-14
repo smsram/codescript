@@ -7,23 +7,41 @@ import { BasicDetails, SecuritySettings, EnvironmentRules } from '@/components/a
 
 export default function NewContestPage() {
   const router = useRouter(); 
+  
   const [contestData, setContestData] = useState({
     title: '', description: '', startTime: '', endTime: '', 
-    isPrivate: false, joinCode: '', strikes: 3, strictMode: true, // 👈 Added joinCode
+    durationMinutes: '', proctoringEnabled: false, tabStrikes: true, 
+    isPrivate: false, joinCode: '', strikes: 3, strictMode: true, 
     allowedLangs: ['Python', 'Python 3', 'Java', 'C', 'C++', 'C#'] 
   });
 
+  const [isDirty, setIsDirty] = useState(false); // 🚀 strict dirty tracking
   const dataRef = useRef(contestData);
 
   useEffect(() => {
     const savedData = sessionStorage.getItem('newContestDraftData');
-    if (savedData) setContestData(JSON.parse(savedData));
+    if (savedData) {
+        setContestData(JSON.parse(savedData));
+        setIsDirty(true); // If they loaded a draft, it implies it was edited
+    }
   }, []);
 
+  // Update refs and session storage quietly
   useEffect(() => {
     sessionStorage.setItem('newContestDraftData', JSON.stringify(contestData));
     dataRef.current = contestData;
   }, [contestData]);
+
+  // Sync dirty state securely to Topbar
+  useEffect(() => {
+    window.dispatchEvent(new CustomEvent('set-topbar-dirty', { detail: isDirty }));
+    return () => window.dispatchEvent(new CustomEvent('set-topbar-dirty', { detail: false }));
+  }, [isDirty]);
+
+  const handleDataChange = (newData) => {
+    setContestData(newData);
+    setIsDirty(true);
+  };
 
   useEffect(() => {
     const executeSave = async (e) => {
@@ -58,6 +76,7 @@ export default function NewContestPage() {
         showToast(targetStatus === 'ACTIVE' ? 'Contest Launched!' : 'Draft Saved!', 'success');
         
         sessionStorage.removeItem('newContestDraftData');
+        setIsDirty(false); // Clear dirty state
         router.push('/admin/contests');
         
       } catch (error) {
@@ -71,12 +90,10 @@ export default function NewContestPage() {
     return () => window.removeEventListener('trigger-save-contest', executeSave);
   }, [router]);
 
-  // 🚀 Listen for Cancel trigger from Topbar
   useEffect(() => {
     const handleCancel = () => {
-      // Clear the temporary draft from session storage
       sessionStorage.removeItem('newContestDraftData');
-      // Redirect back to the directory
+      setIsDirty(false);
       router.push('/admin/contests');
     };
 
@@ -85,17 +102,17 @@ export default function NewContestPage() {
   }, [router]);
 
   return (
-    <div className="builder-container">
+    <div className="builder-container" style={{ paddingBottom: '4rem' }}>
       <div className="flex flex-col mb-8">
         <h2 className="text-2xl font-bold text-slate-50">Contest Builder</h2>
         <p className="text-slate-400 mt-1">Configure environment rules. Save to start adding problems.</p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <BasicDetails data={contestData} onChange={setContestData} />
+        <BasicDetails data={contestData} onChange={handleDataChange} />
         <div className="flex flex-col gap-6">
-          <SecuritySettings data={contestData} onChange={setContestData} />
-          <EnvironmentRules data={contestData} onChange={setContestData} />
+          <SecuritySettings data={contestData} onChange={handleDataChange} />
+          <EnvironmentRules data={contestData} onChange={handleDataChange} />
         </div>
       </div>
     </div>

@@ -9,12 +9,20 @@ export default function Topbar({ toggleMenu }) {
   const pathname = usePathname();
   const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [isDirty, setIsDirty] = useState(false); 
   const [saveMenuOpen, setSaveMenuOpen] = useState(false);
 
   useEffect(() => {
     const handleSetLoading = (e) => setIsSaving(e.detail);
+    const handleSetDirty = (e) => setIsDirty(e.detail);
+    
     window.addEventListener('set-topbar-loading', handleSetLoading);
-    return () => window.removeEventListener('set-topbar-loading', handleSetLoading);
+    window.addEventListener('set-topbar-dirty', handleSetDirty);
+    
+    return () => {
+        window.removeEventListener('set-topbar-loading', handleSetLoading);
+        window.removeEventListener('set-topbar-dirty', handleSetDirty);
+    };
   }, []);
 
   useEffect(() => {
@@ -26,14 +34,42 @@ export default function Topbar({ toggleMenu }) {
 
   let pageTitle = "System Overview";
   let actionComponent = null;
-  let hideBellOnMobile = false; 
-
-  const pathParts = pathname.split('/');
-  const contestId = pathParts.length > 3 ? pathParts[3] : '';
 
   const isProblemPage = pathname.includes('/problem/');
   const isLivePage = pathname.includes('/live');
   const isContestBuilder = (pathname === '/admin/contests/new' || pathname.includes('/edit')) && !isProblemPage;
+
+  // 🚀 Centered, compact badge showing only "Unsaved"
+  const UnsavedBadge = () => (
+    <div className="desktop-only" style={{ 
+      display: 'flex', 
+      alignItems: 'center', 
+      justifyContent: 'center',
+      gap: '6px', 
+      color: '#f59e0b', 
+      backgroundColor: 'rgba(245, 158, 11, 0.1)', 
+      border: '1px solid rgba(245, 158, 11, 0.2)', 
+      padding: '5px 10px', 
+      height: '32px', 
+      borderRadius: '6px', 
+      fontSize: '13px', 
+      fontWeight: 600, 
+      marginRight: '12px'
+    }}>
+      <span className="material-symbols-outlined" style={{ 
+        fontSize: '18px', 
+        display: 'inline-flex', 
+        alignItems: 'center',
+        verticalAlign: 'middle'
+      }}>info</span>
+      <span style={{ 
+        display: 'inline-flex', 
+        alignItems: 'center',
+        lineHeight: 1,
+        padding: '4px'
+      }}>Unsaved</span>
+    </div>
+  );
 
   if (pathname === '/admin') {
     pageTitle = "System Overview";
@@ -51,15 +87,11 @@ export default function Topbar({ toggleMenu }) {
   } else if (isProblemPage) {
     const isNew = pathname.endsWith('/new');
     pageTitle = isNew ? "Create Problem" : "Edit Problem";
-    hideBellOnMobile = true;
 
     actionComponent = (
       <div className="topbar-actions-group">
-        <button 
-          className="topbar-cancel-link desktop-only" 
-          style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '14px', fontWeight: 500 }} 
-          onClick={() => window.dispatchEvent(new Event('trigger-cancel'))}
-        >
+        {isDirty && <UnsavedBadge />}
+        <button className="topbar-cancel-link desktop-only" style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '14px', fontWeight: 500 }} onClick={() => window.dispatchEvent(new Event('trigger-cancel'))}>
           Cancel
         </button>
         <button className="btn-primary topbar-btn" disabled={isSaving} onClick={() => window.dispatchEvent(new Event('trigger-save-problem'))}>
@@ -71,7 +103,6 @@ export default function Topbar({ toggleMenu }) {
     );
   } else if (isLivePage) {
     pageTitle = "Live Monitor";
-    hideBellOnMobile = true;
     actionComponent = (
       <div className="topbar-actions-group">
         <div className="live-badge">
@@ -83,15 +114,12 @@ export default function Topbar({ toggleMenu }) {
   } else if (isContestBuilder) {
     const isNew = pathname === '/admin/contests/new';
     pageTitle = isNew ? "Contest Builder" : "Edit Workspace";
-    hideBellOnMobile = true;
 
     actionComponent = (
       <div className="topbar-actions-group">
-        <button 
-          className="topbar-cancel-link desktop-only" 
-          style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '14px', fontWeight: 500 }} 
-          onClick={() => window.dispatchEvent(new Event('trigger-cancel'))}
-        >
+        {isDirty && <UnsavedBadge />}
+
+        <button className="topbar-cancel-link desktop-only" style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '14px', fontWeight: 500 }} onClick={() => window.dispatchEvent(new Event('trigger-cancel'))}>
           Cancel
         </button>
         

@@ -2,33 +2,33 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
+import GoogleAuthButton from '@/components/auth/GoogleAuthButton';
 import './register.css';
 
 export default function RegisterPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   
-  // State for form inputs
+  // State for form inputs (Added pin)
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
     email: '',
+    pin: '',
     password: '',
     confirmPassword: ''
   });
 
-  // State for feedback and loading
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState({ type: '', message: '' });
 
-  // Single handler for all inputs
   const handleInputChange = (e) => {
     const { id, value } = e.target;
-    // Map hyphenated IDs to camelCase state keys
     const keyMap = {
       'first-name': 'firstName',
       'last-name': 'lastName',
       'email': 'email',
+      'pin': 'pin',
       'password': 'password',
       'confirm-password': 'confirmPassword'
     };
@@ -40,7 +40,6 @@ export default function RegisterPage() {
     setLoading(true);
     setStatus({ type: '', message: '' });
 
-    // Client-side Validation
     if (formData.password !== formData.confirmPassword) {
       setStatus({ type: 'error', message: 'Passwords do not match!' });
       setLoading(false);
@@ -54,6 +53,7 @@ export default function RegisterPage() {
         body: JSON.stringify({
           name: `${formData.firstName} ${formData.lastName}`.trim(),
           email: formData.email,
+          pin: formData.pin.trim() || undefined, // 🚀 Send PIN to backend if entered
           password: formData.password
         }),
       });
@@ -66,7 +66,6 @@ export default function RegisterPage() {
 
       setStatus({ type: 'success', message: 'Account created! Redirecting to login...' });
       
-      // Clear form and redirect
       setTimeout(() => {
         window.location.href = '/login';
       }, 2000);
@@ -98,23 +97,13 @@ export default function RegisterPage() {
             <p>Join the CodeScript platform</p>
           </div>
 
-          {/* Feedback Message Area */}
           {status.message && (
             <div className={`status-msg ${status.type === 'error' ? 'text-red-500' : 'text-green-500'} mb-4 text-sm font-semibold`}>
               {status.message}
             </div>
           )}
 
-          {/* SSO Button */}
-          <button className="btn-sso-reg" type="button">
-            <svg aria-hidden="true" viewBox="0 0 24 24" style={{ width: '20px', height: '20px' }}>
-              <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"></path>
-              <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"></path>
-              <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"></path>
-              <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"></path>
-            </svg>
-            <span>Sign up with University Email</span>
-          </button>
+          <GoogleAuthButton actionText="Sign up" className="btn-sso-reg" />
 
           <div className="reg-divider">
             <div className="reg-divider-line"></div>
@@ -141,11 +130,21 @@ export default function RegisterPage() {
               </div>
             </div>
 
+            {/* 🚀 Changed to generic "Email Address" */}
             <div className="reg-input-group">
-              <label htmlFor="email">University Email Address</label>
+              <label htmlFor="email">Email Address</label>
               <input 
-                type="email" id="email" className="reg-input" placeholder="student@university.edu" required 
+                type="email" id="email" className="reg-input" placeholder="student@example.com" required 
                 value={formData.email} onChange={handleInputChange} 
+              />
+            </div>
+
+            {/* 🚀 Added PIN Input for Students */}
+            <div className="reg-input-group">
+              <label htmlFor="pin">PIN / Roll Number <span style={{fontSize:'0.75rem', fontWeight:'normal', opacity: 0.7}}>(Optional)</span></label>
+              <input 
+                type="text" id="pin" className="reg-input" placeholder="e.g. 241UAI0XXX" 
+                value={formData.pin} onChange={handleInputChange} 
               />
             </div>
 
