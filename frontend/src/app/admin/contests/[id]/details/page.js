@@ -10,6 +10,8 @@ import { showToast } from '@/components/ui/Toast';
 import { confirmAlert } from '@/components/ui/AlertConfirm';
 import Skeleton from '@/components/ui/Skeleton';
 import Pagination from '@/components/ui/Pagination'; 
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 import './details.css'; 
 
 export default function ContestDetailsPage({ params }) {
@@ -128,7 +130,6 @@ export default function ContestDetailsPage({ params }) {
              socketRef.current.emit('join-admin-monitor', { examId });
            });
            socketRef.current.on('live-stats-update', (liveData) => {
-             // Will now correctly sync because backend includes Attempted and PIN!
              setStudents(liveData.sessions || []);
            });
          }
@@ -155,7 +156,7 @@ export default function ContestDetailsPage({ params }) {
 
     const timer = setInterval(() => {
       const now = new Date().getTime();
-      setCurrentTimeTick(now); // Force re-render for Time Spent calculation
+      setCurrentTimeTick(now); 
 
       const start = convertIstToLocal(dates.start);
       const end = convertIstToLocal(dates.end);
@@ -250,6 +251,7 @@ export default function ContestDetailsPage({ params }) {
     });
   };
 
+  // 🚀 FIXED: CSV EXPORT
   const handleExportCSV = () => {
     const headers = ["Name", "Email", "PIN", "Status", "Attempted", "Total Questions"];
     if (hasTabStrikes) headers.push("Tab Strikes");
@@ -278,6 +280,54 @@ export default function ContestDetailsPage({ params }) {
     setExportOpen(false);
   };
 
+  // 🚀 FIXED: PDF EXPORT
+  const handleExportPDF = () => {
+    const doc = new jsPDF();
+    const title = `${contestTitle} - Execution Report`;
+    
+    doc.setFontSize(16);
+    doc.text(title, 14, 20);
+    
+    doc.setFontSize(10);
+    doc.text(`Generated on: ${new Date().toLocaleString()}`, 14, 28);
+    doc.text(`Status: ${dynamicStatus} | Total Participants: ${filteredStudents.length}`, 14, 34);
+
+    const tableCols = ["Name", "PIN", "Status", "Progress"];
+    if (hasTabStrikes) tableCols.push("Tab");
+    if (hasCamStrikes) tableCols.push("Cam");
+    tableCols.push("Mins");
+
+    const tableRows = filteredStudents.map(s => {
+      const startMs = convertIstToLocal(s.joinedAt);
+      const endMs = s.status === 'IN_PROGRESS' ? Date.now() : (s.completedAt ? convertIstToLocal(s.completedAt) : Date.now());
+      const mins = s.joinedAt ? Math.max(1, Math.round((endMs - startMs) / 60000)) : 0;
+      
+      const row = [
+        s.user.name,
+        s.user.pin || 'N/A',
+        s.status.replace('_', ' '),
+        `${s.attempted || 0}/${totalQuestions}`
+      ];
+      
+      if (hasTabStrikes) row.push(s.strikes.toString());
+      if (hasCamStrikes) row.push(Math.max(0, s.camStrikes - 1).toString());
+      row.push(mins.toString());
+      
+      return row;
+    });
+
+    autoTable(doc, {
+      head: [tableCols],
+      body: tableRows,
+      startY: 40,
+      styles: { fontSize: 9 },
+      headStyles: { fillColor: [59, 130, 246] }
+    });
+
+    doc.save(`${contestTitle.replace(/\s+/g, '_')}_Report.pdf`);
+    setExportOpen(false);
+  };
+
   useEffect(() => { setCurrentPage(1); }, [search, filter]);
 
   const filteredStudents = students.filter(s => {
@@ -289,7 +339,7 @@ export default function ContestDetailsPage({ params }) {
     if (filter === 'coding') return matchesSearch && s.status === 'IN_PROGRESS';
     if (filter === 'warning') return matchesSearch && s.status === 'IN_PROGRESS' && (
       (hasTabStrikes && s.strikes >= (contestLimit - 1)) || 
-      (hasCamStrikes && Math.max(0, s.camStrikes - 1) >= (camLimit - 1)) // 🚀 Dynamic Alert Trigger
+      (hasCamStrikes && Math.max(0, s.camStrikes - 1) >= (camLimit - 1)) 
     );
     if (filter === 'submitted') return matchesSearch && s.status === 'SUBMITTED';
     if (filter === 'kicked') return matchesSearch && s.status === 'KICKED';
@@ -307,12 +357,10 @@ export default function ContestDetailsPage({ params }) {
   )).length;
   const submittedCount = students.filter(s => s.status === 'SUBMITTED').length;
 
-  // 🚀 FIXED: Dynamic Time Spent calculation based on live status
   const calculateTimeSpent = (student) => {
       if (!student.joinedAt) return "--";
       const startMs = convertIstToLocal(student.joinedAt);
       
-      // If they are writing right now, use currentTimeTick. Else use completedAt.
       const endMs = student.status === 'IN_PROGRESS' 
           ? currentTimeTick 
           : (student.completedAt ? convertIstToLocal(student.completedAt) : currentTimeTick);
@@ -521,13 +569,11 @@ export default function ContestDetailsPage({ params }) {
                     (hasCamStrikes && displayCamStrikes >= (camLimit - 1))
                 );
                 
-                // Constructing tooltip text to hide PIN & Email behind hover cleanly
                 const hoverText = `Email: ${student.user.email}${student.user.pin ? `\nPIN: ${student.user.pin}` : ''}`;
 
                 return (
                   <tr key={student.id} style={{ backgroundColor: isAnomaly ? 'rgba(239, 68, 68, 0.05)' : '' }}>
                     <td>
-                      {/* 🚀 Hover to see Email & PIN natively via title attribute */}
                       <div className="student-cell" title={hoverText} style={{ cursor: 'help' }}>
                         <div className={`student-avatar ${isAnomaly ? 'anomaly' : 'normal'}`}>
                           {student.user.name.substring(0, 2).toUpperCase()}
@@ -556,7 +602,6 @@ export default function ContestDetailsPage({ params }) {
                       </span>
                     </td>
 
-                    {/* 🚀 Dynamic Strike Columns Format: 1 / 3 */}
                     {hasTabStrikes && (
                        <td>
                           <span style={{ color: student.strikes >= contestLimit ? '#ef4444' : student.strikes > 0 ? '#f59e0b' : '#94a3b8', fontWeight: 600, background: 'rgba(15, 23, 42, 0.5)', padding: '4px 8px', borderRadius: '4px' }}>
@@ -573,7 +618,6 @@ export default function ContestDetailsPage({ params }) {
                        </td>
                     )}
 
-                    {/* 🚀 Dynamic Time Spent Column */}
                     <td>
                        <span style={{ color: '#e2e8f0', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '6px', background: '#1e293b', padding: '4px 10px', borderRadius: '4px', width: 'fit-content' }}>
                            <span className={`material-symbols-outlined ${student.status === 'IN_PROGRESS' ? 'animate-pulse' : ''}`} style={{ fontSize: '16px', color: student.status === 'IN_PROGRESS' ? '#10b981' : '#64748b' }}>schedule</span>
@@ -612,7 +656,6 @@ export default function ContestDetailsPage({ params }) {
           </table>
         </div>
 
-        {/* 🚀 Pagination Component */}
         {!loading && filteredStudents.length > 0 && (
            <div style={{ padding: '16px' }}>
               <Pagination 
