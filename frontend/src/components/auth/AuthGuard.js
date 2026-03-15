@@ -70,7 +70,7 @@ export default function AuthGuard({ children, allowedRoles = [] }) {
         </p>
 
         <style dangerouslySetInnerHTML={{ __html: `
-          @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+          @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(-360deg); } }
           .animate-spin { display: inline-block; animation: spin 1.2s linear infinite; }
         `}} />
       </div>
