@@ -43,8 +43,10 @@ export const metadata = {
     apple: "/CodeScriptLogo.png",
   },
   verification: {
-    // 🚀 Now pulling securely from your environment variables
-    google: process.env.GOOGLE_SITE_VERIFICATION, 
+    google: process.env.GOOGLE_SITE_VERIFICATION,
+    other: {
+      'msvalidate.01': process.env.BING_SITE_VERIFICATION,
+    },
   }
 };
 
