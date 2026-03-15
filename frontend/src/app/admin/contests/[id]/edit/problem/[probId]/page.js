@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import DescriptionEditor from '@/components/editor/DescriptionEditor';
 import CodeWorkspace from '@/components/editor/CodeWorkspace';
 import AIProblemGenerator from '@/components/editor/AIProblemGenerator'; 
+import PackageManager from '@/components/editor/PackageManager'; // 🚀 Imported Package Manager
 import { showToast } from '@/components/ui/Toast';
 import '@/components/editor/editor.css';
 
@@ -24,6 +25,9 @@ export default function EditProblemInNewContestPage({ params }) {
   const [driverCode, setDriverCode] = useState({});
   const [allowedLangs, setAllowedLangs] = useState(['Python', 'Java', 'C++']);
   const [fetching, setFetching] = useState(true);
+
+  // 🚀 State to control the Package Manager Modal
+  const [showPackageManager, setShowPackageManager] = useState(false);
 
   const dataRef = useRef({ problemTitle, description, diff, tag, testCases, codeStubs, solutions, driverCode });
 
@@ -60,7 +64,6 @@ export default function EditProblemInNewContestPage({ params }) {
         setDiff(p.diff || 'Medium');
         setTag(p.tag || '');
         
-        // 🚀 SAFE PARSER: Ensures DB strings become objects correctly
         const parseJSON = (val) => {
             if (!val) return {};
             if (typeof val === 'string') {
@@ -70,7 +73,7 @@ export default function EditProblemInNewContestPage({ params }) {
         };
 
         setCodeStubs(parseJSON(p.codeStubs));
-        setSolutions(parseJSON(p.solution)); // DB uses 'solution'
+        setSolutions(parseJSON(p.solution)); 
         setDriverCode(parseJSON(p.driverCode));
         
         if (p.testCases && p.testCases.length > 0) {
@@ -151,7 +154,43 @@ export default function EditProblemInNewContestPage({ params }) {
 
   return (
     <div className="problem-builder-wrapper">
-      <AIProblemGenerator allowedLangs={allowedLangs} onApply={applyAIData} />
+      
+      {/* 🚀 Top Controls: AI Generator & Package Manager Button */}
+      <div style={{ display: 'flex', gap: '16px', alignItems: 'flex-start', flexWrap: 'wrap' }}>
+        <div style={{ flex: 1 }}>
+          <AIProblemGenerator allowedLangs={allowedLangs} onApply={applyAIData} />
+        </div>
+        <button 
+          onClick={() => setShowPackageManager(true)}
+          style={{ 
+            display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 16px', 
+            background: 'var(--bg-surface)', color: '#38bdf8', 
+            border: '1px solid #334155', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', 
+            boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)', height: '40px', transition: 'background 0.2s' 
+          }}
+          onMouseEnter={e => e.currentTarget.style.background = 'rgba(56, 189, 248, 0.1)'}
+          onMouseLeave={e => e.currentTarget.style.background = 'var(--bg-surface)'}
+        >
+          <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>deployed_code</span>
+          Manage Packages
+        </button>
+      </div>
+
+      {/* 🚀 Package Manager Modal */}
+      {showPackageManager && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 99999, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={() => setShowPackageManager(false)}>
+          <div style={{ width: '90%', maxWidth: '800px', position: 'relative' }} onClick={e => e.stopPropagation()}>
+            <button 
+              onClick={() => setShowPackageManager(false)} 
+              style={{ position: 'absolute', top: '16px', right: '16px', background: 'rgba(255,255,255,0.1)', border: 'none', color: '#fff', borderRadius: '50%', width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', zIndex: 10 }}
+            >
+              <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>close</span>
+            </button>
+            <PackageManager />
+          </div>
+        </div>
+      )}
+
       <div>
         <input type="text" className="problem-title-input" placeholder="Enter Problem Title..." value={problemTitle} onChange={(e) => setProblemTitle(e.target.value)} />
       </div>

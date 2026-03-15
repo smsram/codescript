@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Sidebar from '@/components/admin/Sidebar';
 import Topbar from '@/components/admin/Topbar';
-import AuthGuard from '@/components/auth/AuthGuard'; // 👈 Import the Guard
+import AuthGuard from '@/components/auth/AuthGuard';
 import './admin.css';
 
 export default function AdminLayout({ children }) {

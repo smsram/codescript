@@ -1,0 +1,295 @@
+/* --- SCROLLING & THEME --- */
+html {
+  scroll-behavior: smooth;
+}
+
+.legal-page-container {
+  min-height: 100vh;
+  background-color: var(--bg-main);
+  color: var(--text-main);
+  padding: 0 1.5rem 10rem 1.5rem; /* Large bottom padding instead of footer */
+}
+
+.legal-wrapper {
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+/* --- HEADER --- */
+.legal-nav-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 2rem 0;
+  margin-bottom: 4rem;
+}
+
+.back-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.6rem 1rem;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-light);
+  border-radius: 12px;
+  color: var(--text-muted);
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 0.85rem;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.back-btn:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+  background: var(--bg-surface-hover);
+  transform: translateX(-5px);
+}
+
+.nav-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-weight: 800;
+  font-size: 1.1rem;
+  color: var(--text-main);
+}
+
+.nav-logo-img { height: 28px; width: auto; }
+
+/* --- HERO --- */
+.legal-hero {
+  text-align: center;
+  margin-bottom: 6rem;
+}
+
+.legal-badge {
+  display: inline-block;
+  padding: 0.4rem 1.2rem;
+  background: rgba(7, 178, 213, 0.08);
+  color: var(--primary);
+  border-radius: 100px;
+  font-size: 0.7rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  margin-bottom: 2rem;
+}
+
+.legal-hero h1 {
+  font-size: clamp(2.2rem, 6vw, 3.8rem);
+  font-weight: 900;
+  margin-bottom: 1.5rem;
+  letter-spacing: -1px;
+}
+
+.legal-hero p {
+  font-size: 1.1rem;
+  color: var(--text-muted);
+  max-width: 600px;
+  margin: 0 auto;
+  line-height: 1.6;
+}
+
+/* --- INFO CARDS --- */
+.info-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 8rem;
+}
+
+.info-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-light);
+  padding: 2.5rem;
+  border-radius: 24px;
+  transition: all 0.4s ease;
+}
+
+.info-card:hover {
+  border-color: var(--primary);
+  transform: scale(1.02);
+  box-shadow: 0 20px 40px -20px rgba(7, 178, 213, 0.15);
+}
+
+.info-card .icon {
+  font-size: 2.5rem;
+  color: var(--primary);
+  margin-bottom: 1.5rem;
+  display: block;
+}
+
+.info-card h3 { margin-bottom: 0.8rem; font-size: 1.2rem; }
+.info-card p { color: var(--text-muted); font-size: 0.9rem; line-height: 1.6; }
+
+/* --- CONTENT --- */
+.content-layout {
+  display: flex;
+  flex-direction: column;
+  gap: 5rem;
+}
+
+.legal-articles { flex: 1; }
+
+.policy-section {
+  margin-bottom: 6rem;
+  scroll-margin-top: 50px;
+}
+
+.policy-section h2 {
+  font-size: 1.8rem;
+  margin-bottom: 1.5rem;
+  font-weight: 800;
+}
+
+.policy-section .num {
+  color: var(--primary);
+  font-family: monospace;
+  margin-right: 10px;
+  opacity: 0.5;
+}
+
+.policy-text p {
+  color: var(--text-muted);
+  line-height: 1.8;
+  font-size: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.proctor-box {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-light);
+  padding: 3rem;
+  border-radius: 32px;
+}
+
+.custom-list {
+  list-style: none;
+  margin: 2rem 0;
+}
+
+.custom-list li {
+  color: var(--text-muted);
+  margin-bottom: 1rem;
+  padding-left: 2rem;
+  position: relative;
+}
+
+.custom-list li::before {
+  content: "check_circle";
+  font-family: "Material Symbols Outlined";
+  position: absolute;
+  left: 0;
+  color: var(--primary);
+  font-size: 1.2rem;
+}
+
+.alert-box {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: rgba(7, 178, 213, 0.04);
+  border: 1px solid rgba(7, 178, 213, 0.1);
+  padding: 1.2rem;
+  border-radius: 16px;
+  color: var(--primary);
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+/* --- SIDEBAR --- */
+.sidebar-sticky {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-light);
+  padding: 2rem;
+  border-radius: 24px;
+  position: sticky;
+  top: 3rem;
+}
+
+.sidebar-title {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  color: var(--text-muted);
+  margin-bottom: 1.5rem;
+  font-weight: 800;
+}
+
+.sidebar-links { display: flex; flex-direction: column; gap: 0.5rem; }
+
+.sidebar-links a {
+  padding: 0.8rem 1rem;
+  border-radius: 12px;
+  color: var(--text-muted);
+  text-decoration: none;
+  font-size: 0.9rem;
+  font-weight: 600;
+  transition: all 0.2s ease;
+}
+
+.sidebar-links a:hover {
+  background: var(--bg-surface-hover);
+  color: var(--primary);
+  transform: translateX(5px);
+}
+
+.sidebar-footer {
+  margin-top: 2.5rem;
+  padding-top: 2rem;
+  border-top: 1px solid var(--border-light);
+}
+
+.sidebar-footer p { font-size: 0.8rem; color: var(--text-muted); margin-bottom: 1.2rem; }
+
+.sidebar-btn {
+  width: 100%;
+  padding: 1rem;
+  background: var(--primary);
+  border: none;
+  border-radius: 12px;
+  color: white;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 10px 20px -10px rgba(7, 178, 213, 0.4);
+}
+
+.sidebar-btn:hover {
+  transform: translateY(-3px);
+  filter: brightness(1.1);
+  box-shadow: 0 15px 30px -10px rgba(7, 178, 213, 0.5);
+}
+
+.csm-tag {
+  margin-top: 2rem;
+  font-size: 0.7rem;
+  text-align: center;
+  color: var(--text-muted);
+  font-weight: 600;
+  letter-spacing: 0.5px;
+}
+
+/* --- RESPONSIVENESS --- */
+@media (min-width: 1024px) {
+  .content-layout { flex-direction: row; align-items: flex-start; gap: 4rem; }
+  .legal-articles { flex: 1; }
+  .legal-sidebar { width: 300px; }
+}
+
+@media (max-width: 640px) {
+  .hide-mobile { display: none; }
+  .proctor-box { padding: 1.5rem; }
+  .legal-hero { margin-bottom: 3rem; }
+}
+
+/* --- ANIMATIONS --- */
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(30px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.anim-fade-up { animation: fadeInUp 0.8s cubic-bezier(0.2, 0.8, 0.2, 1) forwards; opacity: 0; }
+.delay-1 { animation-delay: 0.15s; }
+.delay-2 { animation-delay: 0.3s; }

@@ -3,18 +3,20 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import GoogleAuthButton from '@/components/auth/GoogleAuthButton';
+import { showToast } from '@/components/ui/Toast'; // 🚀 Imported Toast
 import './login.css';
 
 export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [status, setStatus] = useState({ type: '', message: '' });
 
   // Form State - 'identifier' will hold either the Email or the PIN
   const [formData, setFormData] = useState({
     identifier: '',
     password: ''
   });
+
+  const [rememberMe, setRememberMe] = useState(false);
 
   const handleInputChange = (e) => {
     setFormData({ ...formData, [e.target.id]: e.target.value });
@@ -23,15 +25,15 @@ export default function LoginPage() {
   const handleLogin = async (e) => {
     e.preventDefault();
     setLoading(true);
-    setStatus({ type: '', message: '' });
 
     try {
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          email: formData.identifier, // The backend controller checks this field for either Email OR PIN
-          password: formData.password
+          email: formData.identifier,
+          password: formData.password,
+          rememberMe: rememberMe // Sends true or false to backend
         }),
       });
 
@@ -41,10 +43,19 @@ export default function LoginPage() {
         throw new Error(data.error || 'Login failed. Please check your credentials.');
       }
 
-      setStatus({ type: 'success', message: 'Login successful! Redirecting...' });
+      // 🚀 Trigger Success Toast
+      showToast('Login successful! Redirecting...', 'success');
 
-      localStorage.setItem('token', data.token);
-      localStorage.setItem('user', JSON.stringify(data.user));
+      // Clear old tokens just in case
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      sessionStorage.removeItem('token');
+      sessionStorage.removeItem('user');
+
+      // Use sessionStorage if Remember Me is FALSE (deletes on window close)
+      const storage = rememberMe ? localStorage : sessionStorage;
+      storage.setItem('token', data.token);
+      storage.setItem('user', JSON.stringify(data.user));
 
       setTimeout(() => {
         if (data.user.role === 'ADMIN') {
@@ -55,7 +66,8 @@ export default function LoginPage() {
       }, 1500);
 
     } catch (err) {
-      setStatus({ type: 'error', message: err.message });
+      // 🚀 Trigger Error Toast
+      showToast(err.message, 'error');
       setLoading(false);
     }
   };
@@ -81,13 +93,7 @@ export default function LoginPage() {
             <p>Enter your credentials to access your portal</p>
           </div>
 
-          {status.message && (
-            <div className={`status-msg ${status.type === 'error' ? 'text-red-500' : 'text-green-500'} mb-4 text-sm font-semibold`}>
-              {status.message}
-            </div>
-          )}
-
-          <GoogleAuthButton actionText="Continue" className="btn-sso" />
+          <GoogleAuthButton actionText="Continue" className="btn-sso" rememberMe={rememberMe} />
 
           <div className="divider">
             <div className="divider-line"></div>
@@ -97,7 +103,6 @@ export default function LoginPage() {
 
           <form className="form-group" onSubmit={handleLogin}>
             
-            {/* 🚀 Changed to accept Email OR PIN */}
             <div className="input-wrapper">
               <input 
                 type="text" id="identifier" className="floating-input" placeholder=" " required 
@@ -125,9 +130,15 @@ export default function LoginPage() {
             </div>
 
             <div className="form-controls">
-              <label className="checkbox-group">
-                <input type="checkbox" />
-                <span>Remember me</span>
+              <label className="checkbox-group" style={{ cursor: 'pointer' }}>
+                <input 
+                  type="checkbox" 
+                  checked={rememberMe} 
+                  onChange={(e) => setRememberMe(e.target.checked)} 
+                />
+                <span style={{ fontSize: '0.9rem' }}>
+                  Remember me <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem', marginLeft: '4px' }}>(for 1 week)</span>
+                </span>
               </label>
               <Link href="/reset-password" className="text-link">Forgot password?</Link>
             </div>

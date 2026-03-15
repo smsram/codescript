@@ -13,8 +13,8 @@ export default function AuthGuard({ children, allowedRoles = [] }) {
   const [isAuthorized, setIsAuthorized] = useState(false);
 
   useEffect(() => {
-    // 1. Check for token in localStorage
-    const token = localStorage.getItem('token');
+    // 🚀 1. Check BOTH storages for the token
+    const token = localStorage.getItem('token') || sessionStorage.getItem('token');
 
     if (!token) {
       router.replace('/login');
@@ -30,7 +30,13 @@ export default function AuthGuard({ children, allowedRoles = [] }) {
       // 3. Verify Token Expiration gracefully
       if (payload.exp && Date.now() >= payload.exp * 1000) {
         console.warn("Auth Guard: Token expired. Redirecting to login...");
-        localStorage.clear();
+        
+        // 🚀 Wipe BOTH storages to ensure clean slate
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        sessionStorage.removeItem('token');
+        sessionStorage.removeItem('user');
+        
         router.replace('/login');
         return; // Stop execution here
       }
@@ -49,7 +55,13 @@ export default function AuthGuard({ children, allowedRoles = [] }) {
 
     } catch (error) {
       console.warn("Auth Guard: Invalid token format. Wiping token.");
-      localStorage.clear();
+      
+      // 🚀 Wipe BOTH storages on invalid token
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      sessionStorage.removeItem('token');
+      sessionStorage.removeItem('user');
+      
       router.replace('/login');
     }
   }, [router, allowedRoles]); 

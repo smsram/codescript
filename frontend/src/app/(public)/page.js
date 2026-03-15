@@ -1,6 +1,6 @@
 import React from 'react';
 import Link from 'next/link';
-import ThemeToggle from '@/components/ui/ThemeToggle'; // 🚀 Added ThemeToggle import
+import ThemeToggle from '@/components/ui/ThemeToggle'; 
 import './page.css'; 
 
 export default function Home() {
@@ -22,19 +22,18 @@ export default function Home() {
 
           {/* Links */}
           <div className="nav-links">
-            <a href="#features">Features</a>
+            <a href="#features">Platform Features</a>
             <a href="#ggu">GGU Mission</a>
           </div>
 
           {/* CTAs */}
           <div className="nav-actions">
-            {/* 🚀 Added Theme Switcher here */}
             <ThemeToggle />
             
             <div className="sd-divider" style={{ height: '20px', width: '1px', background: 'var(--border-light)', margin: '0 4px' }}></div>
             
             <Link href="/login" className="btn btn-ghost btn-login">Log In</Link>
-            <Link href="/register" className="btn btn-primary">Register</Link>
+            <Link href="/register" className="btn btn-primary">Student Register</Link>
           </div>
         </div>
       </nav>
@@ -54,17 +53,17 @@ export default function Home() {
           </div>
 
           <h1 className="hero-title anim-fade-up delay-1">
-            Master Algorithms in <span className="text-gradient">Real-Time</span>
+            Seamless Academic Examinations in <span className="text-gradient">Real-Time</span>
           </h1>
 
           <p className="hero-subtitle anim-fade-up delay-2">
-            The official high-performance coding and examination platform designed for the next generation of engineers at Godavari Global University.
+            The official secure assessment, lab execution, and grading platform designed exclusively for the next generation of engineers at Godavari Global University.
           </p>
 
           <div className="hero-buttons anim-fade-up delay-3">
             <Link href="/dashboard" className="btn btn-primary btn-large">
-              <span className="material-symbols-outlined">terminal</span>
-              Start Coding Now
+              <span className="material-symbols-outlined">dashboard</span>
+              Student Portal
             </Link>
             <Link href="/login" className="btn btn-outline btn-large">
               <span className="material-symbols-outlined">school</span>
@@ -81,7 +80,7 @@ export default function Home() {
                 <div className="mac-dot mac-red"></div>
                 <div className="mac-dot mac-yellow"></div>
                 <div className="mac-dot mac-green"></div>
-                <div className="ide-filename">main.cpp</div>
+                <div className="ide-filename">CS201_Midterm.cpp</div>
               </div>
 
               <div className="ide-body">
@@ -135,7 +134,7 @@ export default function Home() {
               </div>
               <h2>Powered by GGU Innovation</h2>
               <p>
-                Experience the cutting-edge technology developed at Godavari Global University. Our platform is designed to foster coding excellence, academic integrity, and seamless integration with the university's curriculum.
+                Experience the cutting-edge educational technology developed exclusively for Godavari Global University. Our platform is designed to maintain academic integrity, automate grading for professors, and provide a seamless examination experience for students.
               </p>
               
               <div className="stats-row">
@@ -145,13 +144,13 @@ export default function Home() {
                 </div>
                 <div className="stat-divider"></div>
                 <div className="stat-item">
-                  <span className="stat-val">200+</span>
-                  <span className="stat-label">Courses</span>
+                  <span className="stat-val">Automated</span>
+                  <span className="stat-label">Grading</span>
                 </div>
                 <div className="stat-divider"></div>
                 <div className="stat-item">
-                  <span className="stat-val">99.9%</span>
-                  <span className="stat-label">Uptime</span>
+                  <span className="stat-val">100%</span>
+                  <span className="stat-label">Secure</span>
                 </div>
               </div>
             </div>
@@ -162,32 +161,32 @@ export default function Home() {
         <section id="features" className="section-padding container">
           <div className="section-header anim-fade-up">
             <h2>Key Pillars of CodeScript</h2>
-            <p>Built for performance, security, and real-world applicability using modern architecture.</p>
+            <p>Built to enforce academic integrity and streamline the university examination process.</p>
           </div>
 
           <div className="grid-3">
             <div className="feature-card anim-fade-up delay-1">
               <div className="feature-icon">
-                <span className="material-symbols-outlined">bolt</span>
+                <span className="material-symbols-outlined">gavel</span>
               </div>
-              <h3>Instant Execution</h3>
-              <p>Run your code in milliseconds with our high-performance isolated execution engine. No waiting, just coding.</p>
+              <h3>Strict Proctoring</h3>
+              <p>Advanced anti-cheat mechanisms, tab-switch monitoring, and automated webcam warnings ensure fair and credible examinations.</p>
             </div>
 
             <div className="feature-card anim-fade-up delay-2">
               <div className="feature-icon">
-                <span className="material-symbols-outlined">shield</span>
+                <span className="material-symbols-outlined">sync</span>
               </div>
-              <h3>Fair & Secure</h3>
-              <p>Advanced proctoring and anti-cheat mechanisms ensure fair examinations and credible certifications for everyone.</p>
+              <h3>Cloud Auto-Save</h3>
+              <p>Never lose your progress during a test. CodeScript automatically syncs your drafts to the cloud every few seconds.</p>
             </div>
 
             <div className="feature-card anim-fade-up delay-3">
               <div className="feature-icon">
-                <span className="material-symbols-outlined">terminal</span>
+                <span className="material-symbols-outlined">analytics</span>
               </div>
-              <h3>Industry Standard</h3>
-              <p>Develop skills using the same compilers, linters, and environments used by top tech companies globally.</p>
+              <h3>Professor Analytics</h3>
+              <p>Instructors get real-time dashboards to monitor student progress, review code submissions, and export detailed CSV/PDF reports.</p>
             </div>
           </div>
         </section>
@@ -198,20 +197,27 @@ export default function Home() {
           <div className="container">
             <div className="cta-inner anim-fade-up">
               <div className="cta-text">
-                <h2>Ready for your next challenge?</h2>
-                <p>Join thousands of GGU students mastering their craft. Start solving real-world problems today.</p>
+                <h2>Ready for your upcoming assessments?</h2>
+                <p>Log in to access your scheduled lab sessions, midterms, and final examinations.</p>
               </div>
               <Link href="/register" className="btn btn-large btn-white">Create Student Account</Link>
             </div>
 
             <div className="footer-bottom">
               <div className="copyright">
-                © {new Date().getFullYear()} Godavari Global University. All rights reserved.
+                <div style={{ marginBottom: '8px' }}>
+                  © {new Date().getFullYear()} Godavari Global University. All rights reserved.
+                </div>
+                <div style={{ fontSize: '0.85rem', color: 'var(--primary)', fontWeight: 500 }}>
+                  <span className="material-symbols-outlined" style={{ fontSize: '14px', verticalAlign: 'middle', marginRight: '4px' }}>code</span>
+                  Proudly made by CSM-3 students (2024 - 2028 batch)
+                </div>
               </div>
               <div className="footer-links">
-                <a href="#">Privacy Policy</a>
-                <a href="#">Terms of Service</a>
-                <a href="#">Support</a>
+                {/* 🚀 Replaced <a> tags with Next.js Link components targeting your new routes */}
+                <Link href="/legal">Privacy Policy</Link>
+                <Link href="/integrity">Academic Integrity Policy</Link>
+                <Link href="/support">IT Support</Link>
               </div>
             </div>
           </div>

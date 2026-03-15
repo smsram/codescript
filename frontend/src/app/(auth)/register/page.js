@@ -3,13 +3,14 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import GoogleAuthButton from '@/components/auth/GoogleAuthButton';
+import { showToast } from '@/components/ui/Toast'; // 🚀 Imported Toast
 import './register.css';
 
 export default function RegisterPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   
-  // State for form inputs (Added pin)
+  // State for form inputs
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -20,7 +21,6 @@ export default function RegisterPage() {
   });
 
   const [loading, setLoading] = useState(false);
-  const [status, setStatus] = useState({ type: '', message: '' });
 
   const handleInputChange = (e) => {
     const { id, value } = e.target;
@@ -38,10 +38,10 @@ export default function RegisterPage() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-    setStatus({ type: '', message: '' });
 
     if (formData.password !== formData.confirmPassword) {
-      setStatus({ type: 'error', message: 'Passwords do not match!' });
+      // 🚀 Trigger Error Toast
+      showToast('Passwords do not match!', 'error');
       setLoading(false);
       return;
     }
@@ -53,7 +53,7 @@ export default function RegisterPage() {
         body: JSON.stringify({
           name: `${formData.firstName} ${formData.lastName}`.trim(),
           email: formData.email,
-          pin: formData.pin.trim() || undefined, // 🚀 Send PIN to backend if entered
+          pin: formData.pin.trim() || undefined,
           password: formData.password
         }),
       });
@@ -64,14 +64,16 @@ export default function RegisterPage() {
         throw new Error(data.error || 'Registration failed. Please try again.');
       }
 
-      setStatus({ type: 'success', message: 'Account created! Redirecting to login...' });
+      // 🚀 Trigger Success Toast
+      showToast('Account created! Redirecting to login...', 'success');
       
       setTimeout(() => {
         window.location.href = '/login';
       }, 2000);
 
     } catch (err) {
-      setStatus({ type: 'error', message: err.message });
+      // 🚀 Trigger Error Toast
+      showToast(err.message, 'error');
       setLoading(false);
     }
   };
@@ -97,13 +99,7 @@ export default function RegisterPage() {
             <p>Join the CodeScript platform</p>
           </div>
 
-          {status.message && (
-            <div className={`status-msg ${status.type === 'error' ? 'text-red-500' : 'text-green-500'} mb-4 text-sm font-semibold`}>
-              {status.message}
-            </div>
-          )}
-
-          <GoogleAuthButton actionText="Sign up" className="btn-sso-reg" />
+          <GoogleAuthButton actionText="Sign up" className="btn-sso-reg" rememberMe={false} />
 
           <div className="reg-divider">
             <div className="reg-divider-line"></div>
@@ -130,7 +126,6 @@ export default function RegisterPage() {
               </div>
             </div>
 
-            {/* 🚀 Changed to generic "Email Address" */}
             <div className="reg-input-group">
               <label htmlFor="email">Email Address</label>
               <input 
@@ -139,7 +134,6 @@ export default function RegisterPage() {
               />
             </div>
 
-            {/* 🚀 Added PIN Input for Students */}
             <div className="reg-input-group">
               <label htmlFor="pin">PIN / Roll Number <span style={{fontSize:'0.75rem', fontWeight:'normal', opacity: 0.7}}>(Optional)</span></label>
               <input 
@@ -195,7 +189,9 @@ export default function RegisterPage() {
             </div>
 
             <p className="reg-terms-text">
-              By creating an account, you agree to the <Link href="#">Academic Honor Code</Link> and <Link href="#">Terms of Service</Link>.
+              By creating an account, you agree to the{' '}
+              <Link href="/integrity">Academic Honor Code</Link> and{' '}
+              <Link href="/legal">Terms of Service</Link>.
             </p>
 
             <button type="submit" className="reg-btn-submit" disabled={loading}>

@@ -4,7 +4,8 @@ import React, { useState } from 'react';
 import { auth } from '@/utils/firebase'; 
 import { GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
 
-export default function GoogleAuthButton({ actionText = "Continue", className = "btn-sso" }) {
+// 🚀 Accept rememberMe prop
+export default function GoogleAuthButton({ actionText = "Continue", className = "btn-sso", rememberMe = false }) {
   const [loading, setLoading] = useState(false);
 
   const handleGoogleSignIn = async () => {
@@ -18,15 +19,24 @@ export default function GoogleAuthButton({ actionText = "Continue", className = 
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/google`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: user.email, name: user.displayName })
+        // 🚀 Send rememberMe to backend
+        body: JSON.stringify({ email: user.email, name: user.displayName, rememberMe })
       });
 
       const data = await response.json();
 
       if (!response.ok) throw new Error(data.error || 'Google Authentication failed');
 
-      localStorage.setItem('token', data.token);
-      localStorage.setItem('user', JSON.stringify(data.user));
+      // 🚀 Clear old tokens
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      sessionStorage.removeItem('token');
+      sessionStorage.removeItem('user');
+
+      // 🚀 Save to correct storage based on checkbox
+      const storage = rememberMe ? localStorage : sessionStorage;
+      storage.setItem('token', data.token);
+      storage.setItem('user', JSON.stringify(data.user));
 
       if (data.user.role === 'ADMIN') {
         window.location.href = '/admin';
@@ -35,9 +45,9 @@ export default function GoogleAuthButton({ actionText = "Continue", className = 
       }
 
     } catch (error) {
-      console.error("Google Sign-In Error:", error);
-      alert(error.message || "Failed to sign in with Google.");
-      setLoading(false);
+        console.error("Google Sign-In Error:", error);
+        alert(error.message || "Failed to sign in with Google.");
+        setLoading(false);
     }
   };
 
@@ -53,8 +63,7 @@ export default function GoogleAuthButton({ actionText = "Continue", className = 
           <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"></path>
         </svg>
       )}
-      {/* 🚀 Removed the word "University" */}
-      <span>{loading ? "Connecting..." : `${actionText} with Email`}</span>
+      <span>{loading ? "Connecting..." : `${actionText} with Google`}</span>
     </button>
   );
 }

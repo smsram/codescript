@@ -1,8 +1,9 @@
 import { Inter } from "next/font/google";
 import "./globals.css";
-import { ThemeProvider } from "@/components/ui/ThemeProvider"; // 🚀 Import the Theme Provider
+import { ThemeProvider } from "@/components/ui/ThemeProvider";
 import ToastContainer from "@/components/ui/Toast"; 
 import AlertContainer from "@/components/ui/AlertConfirm";
+import GlobalStorageFix from '@/components/auth/GlobalStorageFix';
 
 const inter = Inter({
   variable: "--font-inter",
@@ -46,6 +47,7 @@ export default function RootLayout({ children }) {
       <body
         className={`${inter.variable} antialiased selection:bg-primary/30 font-sans`}
       >
+        <GlobalStorageFix />
         <ThemeProvider>
           {/* Global UI Components */}
           <ToastContainer />
