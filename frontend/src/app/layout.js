@@ -16,18 +16,20 @@ export const metadata = {
     default: 'CodeScript | Godavari Global University (GGU)',
     template: '%s | CodeScript GGU'
   },
-  description: 'The official secure coding environment and college contest platform for Godavari Global University. Join CodeScript for real-time lab assessments and algorithmic challenges.',
+  description: 'The official secure coding environment for Godavari Global University. Developed by student Meher Siva Ram and team with the help of AI. Join CodeScript for real-time lab assessments and college contests.',
+  
   keywords: [
     'Code Script GGU', 
+    'Meher Siva Ram', 
     'Code Script College Contests', 
     'GGU Coding Platform', 
     'Godavari Global University', 
     'CSM-3 CodeScript',
-    'Interactive Coding Labs GGU',
-    'Proctored Coding Exams'
+    'AI Assisted Development',
+    'Interactive Coding Labs GGU'
   ],
-  authors: [{ name: 'CSM-3 Development Team' }],
-  creator: 'Godavari Global University',
+  authors: [{ name: 'Meher Siva Ram & CSM-3 Team' }],
+  creator: 'Meher Siva Ram',
   openGraph: {
     title: 'CodeScript GGU | College Contest Platform',
     description: 'Secure execution environment for GGU computer science students.',
