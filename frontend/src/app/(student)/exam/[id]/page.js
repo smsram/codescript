@@ -136,7 +136,6 @@ export default function ExamIDE({ params }) {
             return router.replace(`/exam/${examId}/submissions?reason=${reason}`);
         }
 
-        // 🚀 CALCULATE STUDENT'S EXACT DEADLINE (If Session Already Exists)
         if (data.session && data.session.joinedAt) {
             const joinedAtMs = parseIST(data.session.joinedAt);
             const durationMs = c.durationMinutes ? c.durationMinutes * 60000 : null;
@@ -152,10 +151,7 @@ export default function ExamIDE({ params }) {
             setPersonalEndTime(pEnd);
             personalEndTimeRef.current = pEnd;
 
-            // 🚀 FIX: Instantly load existing strikes from the DB before sockets even connect!
             setLocalStrikes(data.session.strikes || 0);
-            
-            // Subtract 1 from cam strikes so the UI accurately ignores the free warning
             setLocalCamStrikes(data.session.camStrikes ? Math.max(0, data.session.camStrikes - 1) : 0);
         }
 
@@ -289,9 +285,17 @@ export default function ExamIDE({ params }) {
       }
     });
 
+    // 🚀 TARGETED TERMINATION LISTENER (From Admin)
     socketRef.current.on('exam-terminated', (data) => {
       hasSubmittedRef.current = true;
+      showToast(data?.reason || "You have been terminated from the exam by the administrator.", "error");
       router.replace(`/exam/${examId}/submissions?reason=terminated`);
+    });
+
+    // 🚀 TARGETED RESET LISTENER (From Admin)
+    socketRef.current.on('exam-reset', () => {
+      showToast("Your exam has been reset by the instructor. Reloading...", "info");
+      setTimeout(() => window.location.reload(), 1500);
     });
 
     socketRef.current.on('sync-solved', (solvedIds) => {
@@ -331,18 +335,16 @@ export default function ExamIDE({ params }) {
       }
     });
 
-    // 🚀 Webcam Strike Listener
+    // Webcam Strike Listener
     socketRef.current.on('cam-strike-update', (data) => {
         setLocalCamStrikes(data.count); 
         
         if (data.status === "KICKED" || data.count >= data.limit) {
             handleSubmitExam(true, "KICKED"); 
         } else {
-            // 🚀 FIX: Clearly show the backend received the warning
             if (data.isWarning) {
                 showToast(`🚨 OFFICIAL WARNING: ${data.reason}. The next detection will result in a formal strike!`, "warning");
             } else {
-                // Actual strikes get the disruptive popup
                 confirmAlert({
                     title: "Camera Violation Detected!", 
                     message: `Camera Strike ${data.count} of ${data.limit} (${data.reason}). Please remain focused on the exam.`,
@@ -526,8 +528,6 @@ export default function ExamIDE({ params }) {
     >
       <div className={`ide-wrapper ${isDraggingX ? 'is-dragging' : ''}`}>
         
-        {/* 🚀 If you need a camera initialization overlay, it can go here or within ExamSecurity.
-            If you want to replace the standard text 'loading' with a spinner when the IDE is fetching: */}
         {loading && (
             <div style={{ position: 'absolute', inset: 0, zIndex: 9999, background: 'var(--bg-main)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: 'var(--text-main)' }}>
                 <span className="material-symbols-outlined animate-spin" style={{ fontSize: '48px', color: 'var(--primary)', marginBottom: '16px' }}>

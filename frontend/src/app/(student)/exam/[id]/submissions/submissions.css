@@ -146,32 +146,135 @@
 .page-info { font-size: 0.75rem; color: var(--text-muted); }
 .page-info span { font-weight: 500; color: var(--text-main); }
 
-/* Code Viewer Modal */
+/* --- ENHANCED CODE VIEWER MODAL --- */
 .code-modal-overlay {
   position: fixed; inset: 0; background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(4px);
   display: flex; align-items: center; justify-content: center; z-index: 100; padding: 20px;
 }
 .code-modal {
   background: var(--bg-main); border: 1px solid var(--border-light); border-radius: 12px;
-  width: 100%; max-width: 800px; max-height: 80vh; display: flex; flex-direction: column;
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.3); overflow: hidden;
+  width: 100%; max-width: 900px; height: 85vh; display: flex; flex-direction: column;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5); overflow: hidden;
   animation: modalIn 0.2s ease-out;
 }
 .code-modal-header {
-  display: flex; justify-content: space-between; align-items: center;
+  display: flex; justify-content: space-between; align-items: flex-start;
   padding: 16px 20px; background: var(--bg-surface); border-bottom: 1px solid var(--border-light);
 }
 .btn-close-modal {
   background: transparent; border: none; color: var(--text-muted); cursor: pointer;
   display: flex; align-items: center; justify-content: center; border-radius: 4px; padding: 4px;
+  transition: all 0.2s;
 }
-.btn-close-modal:hover { background: var(--bg-surface-hover); color: var(--text-main); }
-.code-modal-body {
-  padding: 20px; overflow-y: auto; background: #000;
+.btn-close-modal:hover { background: rgba(239, 68, 68, 0.1); color: #ef4444; }
+
+.code-modal-tabs {
+  display: flex; gap: 1rem; padding: 0 20px; background: var(--bg-surface); border-bottom: 1px solid var(--border-light);
 }
-.code-modal-body pre {
-  margin: 0; font-family: 'JetBrains Mono', 'Fira Code', monospace;
-  font-size: 14px; color: #e2e8f0; line-height: 1.5; white-space: pre-wrap;
+.code-modal-tabs button {
+  background: transparent; border: none; padding: 12px 4px; color: var(--text-muted); cursor: pointer;
+  border-bottom: 2px solid transparent; font-weight: 600; font-size: 0.875rem; transition: all 0.2s;
+}
+.code-modal-tabs button:hover { color: var(--text-main); }
+.code-modal-tabs button.active { color: var(--primary); border-bottom-color: var(--primary); }
+
+.code-modal-body-scroll {
+  padding: 24px; overflow-y: auto; flex: 1; background: var(--bg-main);
+}
+
+.problem-statement-html h1, .problem-statement-html h2, .problem-statement-html h3 {
+  color: var(--text-main); margin-top: 1.5rem; margin-bottom: 0.5rem;
+}
+.problem-statement-html p { margin-bottom: 1rem; }
+.problem-statement-html code {
+  background: var(--bg-surface-hover); padding: 2px 6px; border-radius: 4px; font-family: monospace; font-size: 0.9em;
+}
+.problem-statement-html pre {
+  background: #000; padding: 12px; border-radius: 8px; border: 1px solid var(--border-light); overflow-x: auto;
+}
+
+/* 🚀 Make sure the MarkdownRenderer blends well inside the modal */
+.problem-statement-html {
+  font-size: 0.95rem;
+  color: var(--text-main);
+}
+.problem-statement-html pre {
+  background: #000;
+  padding: 12px;
+  border-radius: 8px;
+  border: 1px solid var(--border-light);
+  overflow-x: auto;
+  margin-top: 0.5rem;
+  margin-bottom: 1rem;
+}
+.problem-statement-html code {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.85rem;
+}
+.problem-statement-html p code {
+  background: var(--bg-surface-hover);
+  padding: 2px 6px;
+  border-radius: 4px;
+  color: #38bdf8;
+}
+/* --- ENHANCED MODAL CONTENT STYLING --- */
+
+/* Fixes List shifting left in Markdown Renderer */
+.problem-statement-html ul,
+.problem-statement-html ol {
+  padding-left: 1.5rem;
+  margin-bottom: 1rem;
+}
+
+.problem-statement-html li {
+  margin-bottom: 0.25rem;
+}
+
+.problem-statement-html h1, 
+.problem-statement-html h2, 
+.problem-statement-html h3 {
+  color: var(--text-main); 
+  margin-top: 1.5rem; 
+  margin-bottom: 0.5rem;
+}
+
+.problem-statement-html p { 
+  margin-bottom: 1rem; 
+}
+
+.problem-statement-html code {
+  background: var(--bg-surface-hover); 
+  padding: 2px 6px; 
+  border-radius: 4px; 
+  font-family: 'JetBrains Mono', monospace; 
+  font-size: 0.9em;
+}
+
+.problem-statement-html pre {
+  background: #000; 
+  padding: 12px; 
+  border-radius: 8px; 
+  border: 1px solid var(--border-light); 
+  overflow-x: auto;
+  margin-top: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.problem-statement-html p code {
+  color: #38bdf8;
+}
+
+/* Code Block Headers */
+.code-block-header {
+  padding: 8px 16px;
+  background: var(--bg-surface-hover);
+  border: 1px solid var(--border-light);
+  border-bottom: none;
+  border-radius: 8px 8px 0 0;
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
 }
 
 @keyframes modalIn {
