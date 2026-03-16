@@ -4,6 +4,8 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import Skeleton from '@/components/ui/Skeleton';
+// 🚀 FIXED: Correctly imported 'confirmAlert'
+import { confirmAlert } from '@/components/ui/AlertConfirm'; 
 
 export default function Sidebar({ isOpen, closeMenu }) {
   const pathname = usePathname();
@@ -50,11 +52,19 @@ export default function Sidebar({ isOpen, closeMenu }) {
   }, []);
 
   const handleLogout = () => {
-    if (confirm("Logout from CodeScript?")) {
-      localStorage.removeItem('token');
-      sessionStorage.clear();
-      router.replace('/login');
-    }
+    // 🚀 FIXED: Passed arguments as an object matching your AlertConfirm.js structure
+    confirmAlert({
+      title: 'Logout from CodeScript?',
+      message: 'Are you sure you want to end your session?',
+      confirmText: 'Logout',
+      cancelText: 'Cancel',
+      isDanger: true, // Turns the confirm button red
+      onConfirm: () => {
+        localStorage.removeItem('token');
+        sessionStorage.clear();
+        router.replace('/login');
+      }
+    });
   };
 
   const navLinks = [
@@ -67,7 +77,6 @@ export default function Sidebar({ isOpen, closeMenu }) {
   return (
     <aside className={`admin-sidebar ${isOpen ? 'open' : ''}`}>
       <div className="sidebar-header">
-        {/* 🚀 Replaced Circle with Logo Image */}
         <img 
           src="/CodeScriptLogo.png" 
           alt="CodeScript Logo" 

@@ -25,7 +25,7 @@ body {
   width: 100%;
   max-width: 1280px;
   margin: 0 auto;
-  padding: 0 1.5rem; /* Increased base padding for better mobile breathing room */
+  padding: 0 1.2rem; /* Better mobile breathing room */
 }
 
 /* Custom Scrollbar */
@@ -40,7 +40,7 @@ body {
   top: 0; left: 0; right: 0;
   z-index: 50;
   border-bottom: 1px solid var(--border-light);
-  background: var(--bg-main); /* Changed to use theme bg */
+  background: var(--bg-main);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   opacity: 0.95;
@@ -69,13 +69,14 @@ body {
 }
 
 .nav-logo .icon { color: var(--primary); font-size: 28px; }
-.nav-logo span {
-  font-size: 20px;
+.logo-text {
+  font-size: 18px;
   font-weight: 700;
   letter-spacing: -0.5px;
   background: linear-gradient(to right, var(--text-main), var(--text-muted));
   -webkit-background-clip: text;
   color: transparent;
+  margin-left: 4px;
 }
 
 .nav-links { display: none; align-items: center; gap: 32px; }
@@ -88,39 +89,53 @@ body {
 }
 .nav-links a:hover { color: var(--text-main); }
 
-.nav-actions { display: flex; align-items: center; gap: 12px; }
+/* 🚀 Flex optimized for mobile first */
+.nav-actions { 
+  display: flex; 
+  align-items: center; 
+  gap: 6px; /* Tight gap for small phones */
+}
 
 /* --- BUTTONS --- */
 .btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  font-size: 14px;
-  font-weight: 600;
+  gap: 6px;
   border-radius: 8px;
   cursor: pointer;
   transition: all 0.2s ease;
   text-decoration: none;
   border: none;
+  font-weight: 600;
+  /* 🚀 Base styles are now tiny for mobile */
+  padding: 6px 10px;
+  font-size: 13px;
+  white-space: nowrap;
 }
 
-.btn-ghost { color: var(--text-muted); background: transparent; padding: 8px 16px; }
+.btn-ghost { color: var(--text-muted); background: transparent; }
 .btn-ghost:hover { color: var(--text-main); background: var(--bg-surface-hover); }
+
 .btn-primary {
   background: var(--primary);
-  color: #ffffff; /* Explicit white for contrast */
-  padding: 8px 16px;
+  color: #ffffff;
   box-shadow: 0 0 15px -3px rgba(7, 178, 213, 0.4);
 }
 .btn-primary:hover { background: var(--primary-hover); transform: scale(1.02); }
-.btn-large { padding: 14px 32px; font-size: 16px; border-radius: 12px; }
+
+.btn-large { padding: 12px 24px; font-size: 15px; border-radius: 12px; }
+
 .btn-outline {
   background: var(--bg-surface);
   border: 1px solid var(--border-light);
   color: var(--text-main);
 }
 .btn-outline:hover { background: var(--bg-surface-hover); }
+
+/* 🚀 Magic utility class for hiding text/dividers on mobile */
+.hide-mobile { display: none; }
+
 
 /* --- HERO SECTION --- */
 .hero-section {
@@ -180,7 +195,7 @@ body {
 }
 
 .hero-title {
-  font-size: 40px;
+  font-size: 32px;
   font-weight: 900;
   line-height: 1.15;
   max-width: 900px;
@@ -194,7 +209,7 @@ body {
 }
 
 .hero-subtitle {
-  font-size: 16px;
+  font-size: 15px;
   color: var(--text-muted);
   max-width: 672px;
   margin-bottom: 40px;
@@ -320,7 +335,6 @@ body {
 .showcase-img img { width: 100%; height: 100%; object-fit: cover; opacity: 0.7; transition: transform 0.7s ease; }
 .grid-2:hover .showcase-img img { transform: scale(1.05); opacity: 0.9; }
 
-/* Subtle gradient to fade image into surface */
 .img-overlay { position: absolute; inset: 0; background: linear-gradient(to top, var(--bg-surface), rgba(15, 23, 42, 0.1), transparent); }
 
 .img-badge {
@@ -340,18 +354,18 @@ body {
   display: flex; align-items: center; justify-content: center; color: var(--primary); 
 }
 
-.showcase-content h2 { font-size: 28px; font-weight: 700; color: var(--text-main); line-height: 1.2; }
-.showcase-content p { color: var(--text-muted); font-size: 16px; line-height: 1.6; }
+.showcase-content h2 { font-size: 24px; font-weight: 700; color: var(--text-main); line-height: 1.2; }
+.showcase-content p { color: var(--text-muted); font-size: 15px; line-height: 1.6; }
 
 .stats-row { display: flex; gap: 16px; margin-top: 8px; flex-wrap: wrap; }
 .stat-item { display: flex; flex-direction: column; gap: 4px; }
-.stat-val { font-size: 24px; font-weight: 700; color: var(--text-main); }
-.stat-label { font-size: 14px; color: var(--text-muted); }
+.stat-val { font-size: 20px; font-weight: 700; color: var(--text-main); }
+.stat-label { font-size: 13px; color: var(--text-muted); }
 .stat-divider { width: 1px; background: var(--border-light); }
 
 /* --- FEATURES GRID --- */
 .section-header { margin-bottom: 48px; text-align: center; }
-.section-header h2 { font-size: 28px; font-weight: 700; margin-bottom: 16px; color: var(--text-main); }
+.section-header h2 { font-size: 24px; font-weight: 700; margin-bottom: 16px; color: var(--text-main); }
 .section-header p { color: var(--text-muted); max-width: 672px; margin: 0 auto; line-height: 1.6;}
 
 .grid-3 { display: grid; grid-template-columns: 1fr; gap: 24px; }
@@ -374,23 +388,23 @@ body {
   color: var(--primary); transition: background 0.3s ease;
 }
 .feature-card:hover .feature-icon { background: rgba(7, 178, 213, 0.2); }
-.feature-card h3 { font-size: 20px; font-weight: 700; margin-bottom: 8px; color: var(--text-main); }
+.feature-card h3 { font-size: 18px; font-weight: 700; margin-bottom: 8px; color: var(--text-main); }
 .feature-card p { color: var(--text-muted); font-size: 14px; line-height: 1.6; }
 
 /* --- FOOTER --- */
 .footer-cta { position: relative; margin-top: 80px; border-top: 1px solid var(--border-light); background: var(--bg-surface); }
 .footer-bg-glow { position: absolute; bottom: 0; right: 0; width: 100%; height: 100%; background: rgba(7, 178, 213, 0.05); filter: blur(100px); pointer-events: none; }
-.cta-inner { padding: 64px 0; display: flex; flex-direction: column; gap: 32px; align-items: center; text-align: center; }
-.cta-text h2 { font-size: 28px; font-weight: 700; margin-bottom: 16px; color: var(--text-main); }
-.cta-text p { color: var(--text-muted); font-size: 16px; line-height: 1.6; }
+.cta-inner { padding: 48px 0; display: flex; flex-direction: column; gap: 24px; align-items: center; text-align: center; }
+.cta-text h2 { font-size: 24px; font-weight: 700; margin-bottom: 16px; color: var(--text-main); }
+.cta-text p { color: var(--text-muted); font-size: 15px; line-height: 1.6; }
 .btn-white { background: var(--text-main); color: var(--bg-main); font-weight: 700; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); }
 .btn-white:hover { transform: scale(1.02); opacity: 0.9; }
 
 .footer-bottom { border-top: 1px solid var(--border-light); padding: 32px 0; display: flex; flex-direction: column; gap: 16px; align-items: center; text-align: center; }
-.footer-links { display: flex; gap: 24px; flex-wrap: wrap; justify-content: center;}
-.footer-links a { color: var(--text-muted); text-decoration: none; font-size: 14px; transition: color 0.3s ease; }
+.footer-links { display: flex; gap: 16px; flex-wrap: wrap; justify-content: center;}
+.footer-links a { color: var(--text-muted); text-decoration: none; font-size: 13px; transition: color 0.3s ease; }
 .footer-links a:hover { color: var(--primary); }
-.copyright { color: var(--text-muted); font-size: 14px; }
+.copyright { color: var(--text-muted); font-size: 13px; }
 
 /* --- KEYFRAME ANIMATIONS --- */
 @keyframes ping { 75%, 100% { transform: scale(2); opacity: 0; } }
@@ -406,10 +420,16 @@ body {
 .delay-3 { animation-delay: 0.3s; }
 
 /* --- MEDIA QUERIES FOR RESPONSIVENESS --- */
+
+/* 🚀 Tablet & Desktop Adjustments */
 @media (min-width: 640px) {
+  .logo-text { font-size: 20px; margin-left: 8px; }
+  .hide-mobile { display: block; }
+  .nav-actions { gap: 16px; }
+  .btn { padding: 8px 16px; font-size: 14px; gap: 8px; }
+  .btn-large { padding: 14px 32px; font-size: 16px; }
   .hero-buttons { flex-direction: row; max-width: none; justify-content: center; }
   .nav-links { display: flex; }
-  .btn-login { display: inline-flex; }
   .footer-bottom { flex-direction: row; justify-content: space-between; text-align: left; }
 }
 
@@ -430,4 +450,9 @@ body {
   .showcase-img { height: auto; }
   .showcase-content { padding: 48px; }
   .showcase-content h2 { font-size: 36px; }
+  .showcase-content p { font-size: 16px; }
+  .stat-val { font-size: 24px; }
+  .stat-label { font-size: 14px; }
+  .feature-card h3 { font-size: 20px; }
+  .cta-text h2 { font-size: 28px; }
 }

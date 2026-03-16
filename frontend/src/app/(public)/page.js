@@ -17,7 +17,7 @@ export default function Home() {
               alt="CodeScript Logo" 
               style={{ height: '32px', width: 'auto', objectFit: 'contain' }} 
             />
-            <span style={{ marginLeft: '8px' }}>CodeScript</span>
+            <span className="logo-text">CodeScript</span>
           </div>
 
           {/* Links */}
@@ -30,10 +30,14 @@ export default function Home() {
           <div className="nav-actions">
             <ThemeToggle />
             
-            <div className="sd-divider" style={{ height: '20px', width: '1px', background: 'var(--border-light)', margin: '0 4px' }}></div>
+            {/* 🚀 Hidden on mobile to save space */}
+            <div className="sd-divider hide-mobile" style={{ height: '20px', width: '1px', background: 'var(--border-light)' }}></div>
             
             <Link href="/login" className="btn btn-ghost btn-login">Log In</Link>
-            <Link href="/register" className="btn btn-primary">Student Register</Link>
+            <Link href="/register" className="btn btn-primary">
+              {/* 🚀 Hides the word "Student" on small screens so the button fits perfectly */}
+              <span className="hide-mobile">Student&nbsp;</span>Register
+            </Link>
           </div>
         </div>
       </nav>
@@ -214,7 +218,6 @@ export default function Home() {
                 </div>
               </div>
               <div className="footer-links">
-                {/* 🚀 Replaced <a> tags with Next.js Link components targeting your new routes */}
                 <Link href="/legal">Privacy Policy</Link>
                 <Link href="/integrity">Academic Integrity Policy</Link>
                 <Link href="/support">IT Support</Link>

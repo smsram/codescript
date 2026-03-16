@@ -7,7 +7,6 @@ import { MoreOptions, MoreOptionsItem } from '@/components/ui/MoreOptions';
 
 export default function Topbar({ toggleMenu }) {
   const pathname = usePathname();
-  const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isDirty, setIsDirty] = useState(false); 
   const [saveMenuOpen, setSaveMenuOpen] = useState(false);
@@ -39,51 +38,23 @@ export default function Topbar({ toggleMenu }) {
   const isLivePage = pathname.includes('/live');
   const isContestBuilder = (pathname === '/admin/contests/new' || pathname.includes('/edit')) && !isProblemPage;
 
-  // 🚀 Centered, compact badge showing only "Unsaved"
   const UnsavedBadge = () => (
     <div className="desktop-only" style={{ 
-      display: 'flex', 
-      alignItems: 'center', 
-      justifyContent: 'center',
-      gap: '6px', 
-      color: '#f59e0b', 
-      backgroundColor: 'rgba(245, 158, 11, 0.1)', 
-      border: '1px solid rgba(245, 158, 11, 0.2)', 
-      padding: '5px 10px', 
-      height: '32px', 
-      borderRadius: '6px', 
-      fontSize: '13px', 
-      fontWeight: 600, 
-      marginRight: '12px'
+      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', 
+      color: '#f59e0b', backgroundColor: 'rgba(245, 158, 11, 0.1)', 
+      border: '1px solid rgba(245, 158, 11, 0.2)', padding: '5px 10px', 
+      height: '32px', borderRadius: '6px', fontSize: '13px', fontWeight: 600, marginRight: '12px'
     }}>
-      <span className="material-symbols-outlined" style={{ 
-        fontSize: '18px', 
-        display: 'inline-flex', 
-        alignItems: 'center',
-        verticalAlign: 'middle'
-      }}>info</span>
-      <span style={{ 
-        display: 'inline-flex', 
-        alignItems: 'center',
-        lineHeight: 1,
-        padding: '4px'
-      }}>Unsaved</span>
+      <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>info</span>
+      <span>Unsaved</span>
     </div>
   );
 
   if (pathname === '/admin') {
     pageTitle = "System Overview";
-    actionComponent = (
-      <div className={`topbar-search-container ${isMobileSearchOpen ? 'mobile-open' : ''}`}>
-        <button className="mobile-search-toggle" onClick={(e) => { e.stopPropagation(); setIsMobileSearchOpen(!isMobileSearchOpen); }}>
-          <span className="material-symbols-outlined">{isMobileSearchOpen ? 'close' : 'search'}</span>
-        </button>
-        <div className="topbar-search-box">
-          <input type="text" className="topbar-search-input" placeholder="Search..." />
-          <span className="material-symbols-outlined search-icon">search</span>
-        </div>
-      </div>
-    );
+    // 🚀 Search feature completely removed from here
+    actionComponent = null; 
+    
   } else if (isProblemPage) {
     const isNew = pathname.endsWith('/new');
     pageTitle = isNew ? "Create Problem" : "Edit Problem";
@@ -118,7 +89,6 @@ export default function Topbar({ toggleMenu }) {
     actionComponent = (
       <div className="topbar-actions-group">
         {isDirty && <UnsavedBadge />}
-
         <button className="topbar-cancel-link desktop-only" style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '14px', fontWeight: 500 }} onClick={() => window.dispatchEvent(new Event('trigger-cancel'))}>
           Cancel
         </button>
@@ -142,12 +112,6 @@ export default function Topbar({ toggleMenu }) {
             </div>
           )}
         </div>
-
-        <div className="mobile-only ml-2">
-           <MoreOptions>
-             <MoreOptionsItem icon="cancel" onClick={() => window.dispatchEvent(new Event('trigger-cancel'))}>Discard Changes</MoreOptionsItem>
-           </MoreOptions>
-        </div>
       </div>
     );
   } else if (pathname.startsWith('/admin/contests')) {
@@ -165,9 +129,13 @@ export default function Topbar({ toggleMenu }) {
     <header className="admin-topbar">
       <div className="topbar-main-row">
         <div className="topbar-left">
-          <button className="mobile-menu-btn" onClick={toggleMenu} aria-label="Open Sidebar"><span className="material-symbols-outlined">menu</span></button>
+          <button className="mobile-menu-btn" onClick={toggleMenu} aria-label="Open Sidebar">
+            <span className="material-symbols-outlined">menu</span>
+          </button>
+          
           <h2 className="topbar-title">{pageTitle}</h2>
         </div>
+        
         <div className="topbar-right">
           {actionComponent}
         </div>
