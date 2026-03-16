@@ -214,7 +214,7 @@ export default function Home() {
                 </div>
                 <div style={{ fontSize: '0.85rem', color: 'var(--primary)', fontWeight: 500 }}>
                   <span className="material-symbols-outlined" style={{ fontSize: '14px', verticalAlign: 'middle', marginRight: '4px' }}>code</span>
-                  Proudly made by CSM-3 students (2024 - 2028 batch)
+                  Made by CSM-3 students (2024 - 2028 batch)
                 </div>
               </div>
               <div className="footer-links">
